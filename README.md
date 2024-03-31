@@ -32,24 +32,24 @@ Browser Utility is a comprehensive set of utility classes designed to streamline
 ## Example:
 1. Install the Browser Utility package using npm package manager:
    ```bash
-   npm install browserutility
+   npm install butility
    ```
 
 2. Import the desired modules or specific utility classes into your project:
 
    ```javascript
-   import BrowserUtility from "./browserutility/dist/index.js";
+   import BrowserUtility from "./butility/dist/index.js";
    // or
-   import { dom } from "./browserutility/dist/index.js";
-   import { form } from "./browserutility/dist/index.js";
+   import { dom } from "./butility/dist/index.js";
+   import { form } from "./butility/dist/index.js";
    ```
 
 3. Utilize the provided utility methods to simplify and optimize your web development workflow.
 
 ## Example:
 ```javascript
-import { dom } from "./browserutility/dist/index.js";
-import { form } from "./browserutility/dist/index.js";
+import { dom } from "./butility/dist/index.js";
+import { form } from "./butility/dist/index.js";
 
 const emailInput = dom.Element.createElement({  // Using the dom Element method
     name: 'input',
