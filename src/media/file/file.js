@@ -10,7 +10,7 @@ import RequestServer from '../../network/request/server.js';
  * Utility class for working with files.
  * @class
  */
-export class File {
+export default class File {
     /**
      * Gets the MIME type of a file.
      * @param {File} file - The file to get the MIME type for.
