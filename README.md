@@ -1,5 +1,20 @@
 # Browser Utility
 
+## New Release Version 1.0.1
+This update addresses the issue with `./file/file.js` not providing the `File` module and enhances flexibility with import statements.
+
+Example usage for the new `import`:
+
+```javascript
+// Import a single class or method
+import { Element } from "./butility/dist/index.js";
+
+// Import all methods with your own declaration
+import * as YourAppModule from "./butility/dist/index.js";
+```
+
+This change enables developers to import specific components or modules from the `butility` library, enhancing code organization and providing more flexibility in project structures.
+
 ## Description:
 Browser Utility is a comprehensive set of utility classes designed to streamline common web development tasks. It serves as the successor to the deprecated Awedde package, offering improved functionality, reduced redundancy, and enhanced code quality. Browser Utility consists of four modules: DOM, Form, Network, and Media and Device, each providing a range of utilities to simplify web development processes.
 
@@ -34,6 +49,12 @@ Browser Utility is a comprehensive set of utility classes designed to streamline
    ```bash
    npm install butility
    ```
+   Or use jsdelivr cdn
+   ```javascript
+   import BrowserUtility from "https://cdn.jsdelivr.net/npm/butility@1.0.1/dist/index.min.js";
+   ```
+   ```html
+   <script type="module" src="https://cdn.jsdelivr.net/npm/butility@1.0.1/dist/index.min.js"></script>
 
 2. Import the desired modules or specific utility classes into your project:
 
