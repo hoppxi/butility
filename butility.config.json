@@ -1,0 +1,29 @@
+{
+    "outputFolder": "./out",
+    "include": "all",
+    "exclude": [],
+    "flatten": true,
+    "outputFileName": "scripts.js",
+    "minify": true,
+    "obfuscate": true,
+    "prependBanner": true,
+    "bannerText": "Your Banner Text",
+    "stripComments": false,
+    "mergeSeparator": " --- End of file --- ",
+    "sortClasses": "Alphabet || default",
+    "backupExistingOutput": true,
+    "backupFolder": "./backups",
+    "generateSourceMap": true,
+    "sourceMapFileName": "utilities.js.map",
+    "insertFinalNewline": true,
+    "maxLineLength": 80,
+    "wrapLines": false,
+    "prettifyOutput": true,
+    "prettifyOptions": {
+        "tabWidth": 2,
+        "useTabs": false,
+        "semi": true,
+        "singleQuote": false
+    }
+}
+  
