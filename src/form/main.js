@@ -13,7 +13,7 @@ import { Element } from '../DOM/element/element.js';
  * Utility class for form related tasks
  * @class
  */
-export default class FormAction {
+export class FormAction {
     /**
      * Generate a random password.
      * @param {number} length - The length of the password.

@@ -171,51 +171,6 @@ export class Element {
     }
 
     /**
-     * Empty the content of an element by removing all its child nodes.
-     * @param {HTMLElement} element - The target element.
-     */
-    static emptyElement(element) {
-        element.innerHTML = '';
-    }
-
-    /**
-     * Check if an element is currently visible in the viewport.
-     * @param {HTMLElement} element - The element to check.
-     * @returns {boolean} - True if the element is visible, false otherwise.
-     */
-    static isElementVisible(element) {
-        const rect = element.getBoundingClientRect();
-        return rect.top < window.innerHeight && rect.bottom >= 0;
-    }
-
-    /**
-     * Check if an element is currently hidden.
-     * @param {HTMLElement} element - The element to check.
-     * @returns {boolean} - True if the element is hidden, false otherwise.
-     */
-    static isElementHidden(element) {
-        return element.offsetParent === null;
-    }
-
-    /**
-     * Get the first child element of a parent element.
-     * @param {HTMLElement} parentElement - The parent element.
-     * @returns {HTMLElement|null} - The first child element or null if no child element exists.
-     */
-    static getFirstChildElement(parentElement) {
-        return parentElement.firstElementChild;
-    }
-
-    /**
-     * Get the last child element of a parent element.
-     * @param {HTMLElement} parentElement - The parent element.
-     * @returns {HTMLElement|null} - The last child element or null if no child element exists.
-     */
-    static getLastChildElement(parentElement) {
-        return parentElement.lastElementChild;
-    }
-
-    /**
      * Get the next sibling element of an element.
      * @param {HTMLElement} element - The target element.
      * @returns {HTMLElement|null} - The next sibling element or null if no next sibling exists.
@@ -231,17 +186,6 @@ export class Element {
      */
     static getPreviousSiblingElement(element) {
         return element.previousElementSibling;
-    }
-    /**
-     * Unwrap an element by removing its parent and placing its children in its position.
-     * @param {HTMLElement} element - The element to unwrap.
-     */
-    static unwrapElement(element) {
-        const parent = element.parentNode;
-        while (element.firstChild) {
-            parent.insertBefore(element.firstChild, element);
-        }
-        parent.removeChild(element);
     }
 
     /**
@@ -287,24 +231,6 @@ export class Element {
      */
     static getLastChildElement(parentElement) {
         return parentElement.lastElementChild;
-    }
-
-    /**
-     * Get the next sibling element of an element.
-     * @param {HTMLElement} element - The target element.
-     * @returns {HTMLElement|null} - The next sibling element or null if no next sibling exists.
-     */
-    static getNextSiblingElement(element) {
-        return element.nextElementSibling;
-    }
-
-    /**
-     * Get the previous sibling element of an element.
-     * @param {HTMLElement} element - The target element.
-     * @returns {HTMLElement|null} - The previous sibling element or null if no previous sibling exists.
-     */
-    static getPreviousSiblingElement(element) {
-        return element.previousElementSibling;
     }
 
     /**

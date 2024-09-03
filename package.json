@@ -2,17 +2,15 @@
   "name": "butility",
   "version": "1.0.1",
   "description": "Browser Utility, a set of utility classes, is the new version of the deprecated Awedde package, offering a streamlined set of utility classes across four modules: DOM, Form, Network, and Media and Device. These utilities simplify common web development tasks, replacing the deprecated Awedde package with improved functionality, reduced redundancy, and enhanced code quality.",
-  "main": "index.js",
+  "main": "butility.js",
   "type": "module",
-  "bin": {
-    "butility": "./bin/butility.js"
-  },
   "scripts": {
-    "start": "node index.js"
+    "build": "esbuild src/index.js --bundle --outfile=butility.js --format=iife --global-name=Butility",
+    "build:esm": "esbuild src/index.js --bundle --outfile=butility.esm.js --format=esm"
   },
   "repository": {
     "type": "git",
-    "url": "github.com/ermi111/browserutility"
+    "url": "github.com/ermi111/butility"
   },
   "keywords": [
     "browser",
@@ -25,11 +23,7 @@
   ],
   "author": "Ermiyas Arage <ermiyasarage2023gmail.com>",
   "license": "MIT",
-  "dependencies": {
-    "commander": "^12.1.0",
-    "fs-extra": "^11.2.0",
-    "glob": "^10.4.2",
-    "javascript-obfuscator": "^4.1.1",
-    "uglify-js": "^3.18.0"
+  "devDependencies": {
+    "esbuild": "^0.23.1"
   }
 }

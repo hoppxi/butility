@@ -1,78 +1,64 @@
-# Browser Utility
+# Butility
 
-## New Release Version 1.0.1
-This update addresses the issue with `./file/file.js` not providing the `File` module and enhances flexibility with import statements.
+**Butility** is a handy JavaScript package designed to simplify common tasks in web apps. It’s packed with useful methods for dealing with the DOM, devices, media, networks, and forms. **Butility** is made for the browser, so it’s all about making your web development easier and more efficient.
 
-Example usage for the new `import`:
+## Features
 
-```javascript
-// Import a single class or method
-import { Element } from "./butility/dist/index.js";
+- **DOM**: Easily manipulate and interact with the Document Object Model.
+- **Device**: Get useful information about the user’s device.
+- **Media**: Manage media files and streams effortlessly.
+- **Network**: Handle network-related tasks with ease.
+- **Form**: Simplify form validation and handling.
 
-// Import all methods with your own declaration
-import * as YourAppModule from "./butility/dist/index.js";
+## Installation
+
+Just add Butility to your project:
+
+```bash
+npm install butility
 ```
 
-This change enables developers to import specific components or modules from the `butility` library, enhancing code organization and providing more flexibility in project structures.
+Or include it directly in your HTML:
 
-## Description:
-Browser Utility is a comprehensive set of utility classes designed to streamline common web development tasks. It serves as the successor to the deprecated Awedde package, offering improved functionality, reduced redundancy, and enhanced code quality. Browser Utility consists of four modules: DOM, Form, Network, and Media and Device, each providing a range of utilities to simplify web development processes.
+```html
+<script src="path/to/butility.js"></script> <!-- Without import -->
+<script src="path/to/butility.esm.js" type="module"></script> <!-- With import (esm) -->
+```
 
-## Modules:
+### CDN
 
-1. **DOM Module:**
-   - Provides utilities for DOM manipulation, such as adding and removing classes, handling events, and creating and modifying elements.
+You can include **Butility** directly in your HTML using various CDNs:
 
-2. **Form Module:**
-   - Offers utilities for form manipulation, including validation, serialization, and submission handling.
+#### jsDelivr
 
-3. **Network Module:**
-   - Includes utilities for making HTTP requests, handling responses, and managing network-related tasks.
+```html
+<!-- Standard version -->
+<script src="https://cdn.jsdelivr.net/npm/butility@latest/butility.min.js"></script>
+<!-- ESM version -->
+<script src="https://cdn.jsdelivr.net/npm/butility@latest/butility.esm.min.js" type="module"></script>
+```
 
-4. **Media and Device Module:**
-   - Provides utilities for working with media elements (such as images and videos) and accessing device-related information (such as screen size and orientation).
+#### UNPKG
 
-## Features:
-- Streamlined set of utility classes for common web development tasks.
-- Improved functionality compared to the deprecated Awedde package.
-- Reduced redundancy and enhanced code quality.
-- Four distinct modules covering DOM manipulation, form handling, network requests, and media/device interactions.
+```html
+<!-- Standard version -->
+<script src="https://unpkg.com/butility@latest/butility.min.js"></script>
+<!-- ESM version -->
+<script src="https://unpkg.com/butility@latest/butility.esm.min.js" type="module"></script>
+```
 
-## Usage:
-1. Install the Browser Utility package using npm package manager.
-2. Import the desired modules or specific utility classes into your project.
-3. Utilize the provided utility methods to simplify and optimize your web development workflow.
+### ZIP file download
+To download the files directly, [Click here](https://github.com/ermi111/butility/archive/refs/heads/master.zip) and get the zip file.
 
+## Usage
 
-## Example:
-1. Install the Browser Utility package using npm package manager:
-   ```bash
-   npm install butility
-   ```
-   Or use jsdelivr cdn
-   ```javascript
-   import BrowserUtility from "https://cdn.jsdelivr.net/npm/butility@1.0.1/dist/index.min.js";
-   ```
-   ```html
-   <script type="module" src="https://cdn.jsdelivr.net/npm/butility@1.0.1/dist/index.min.js"></script>
+Using **Butility** is straightforward. Here’s a quick example with esm:
 
-2. Import the desired modules or specific utility classes into your project:
-
-   ```javascript
-   import BrowserUtility from "./butility/dist/index.js";
-   // or
-   import { dom } from "./butility/dist/index.js";
-   import { form } from "./butility/dist/index.js";
-   ```
-
-3. Utilize the provided utility methods to simplify and optimize your web development workflow.
-
-## Example:
 ```javascript
-import { dom } from "./butility/dist/index.js";
-import { form } from "./butility/dist/index.js";
+// Use ESM version
+import { Element, Validate } from "./butility.esm.js";
 
-const emailInput = dom.Element.createElement({  // Using the dom Element method
+const emailInput = Element.createElement({  // Using the dom Element method
     name: 'input',
     class: ['input', 'input-form'],
     attr: {
@@ -84,27 +70,42 @@ const emailInput = dom.Element.createElement({  // Using the dom Element method
     },
 }, e => {
     e.addEventListener('change', () => {
-        form.Validate.validateEmailAddress(e.value); // Using form Validate method
+        Validate.validateEmailAddress(e.value); // Using form Validate method
     });
 });
 
-dom.Element.appendElement(document.body, emailInput);
+Element.appendElement(document.body, emailInput);
+```
+and with direct access in html:
+
+```html
+<!-- Use standard version -->
+<script src="./butility.js"></script>
+<script>
+    // Without import, use the classes (eg. ClassUtility)
+    const button = document.querySelector('button');
+    ClassUtility.addClasses(button, 'you-first-class','second-class' /* continue as your need!*/);
+</script>
 ```
 
-## Note:
-Browser Utility aims to provide a modern and efficient solution for common web development tasks, offering improved functionality and code quality compared to previous solutions.
+Each module is packed with helpful methods that make your web development life easier.
 
-## Contribution:
-Contributions to Browser Utility are welcome! If you'd like to contribute, please follow these guidelines:
-- Fork the repository and create a new branch for your feature or bug fix.
-- Make your changes, ensuring they adhere to the project's coding style and conventions.
-- Write tests to cover your changes, if applicable.
-- Submit a pull request detailing the changes you've made and any relevant information.
+## API Documentation
 
-## Made By:
-Browser Utility is developed and maintained by Ermiyas Arage.
+For detailed information on how to use each method in Butility, check out the [API documentation on the GitHub Wiki](https://github.com/ermi111/butility/wiki).
 
-## License:
-Browser Utility is licensed under the MIT License. You are free to use, modify, and distribute this software under the terms of the MIT License. See the [LICENSE](https://opensource.org/license/mit) file for details.
+## Modules Overview
 
-If you have any questions, suggestions, or issues, feel free to reach out or open an issue on the project's GitHub repository. Thank you for your interest in Browser Utility!
+- **DOM**: Tools to interact with the DOM like adding/removing classes, event handling, etc.
+- **Device**: Methods to detect the user’s browser, OS, and more.
+- **Media**: Manage and manipulate media files or streams.
+- **Network**: Check network status, handle requests, etc.
+- **Form**: Easily validate and manage form inputs.
+
+## License
+
+This project is open-source under the [MIT License](https://github.com/ermi111/butility?tab=MIT-1-ov-file).
+
+## Contributing
+
+contribution is welcome! If you find any bugs or have ideas for improvements, please open an issue or submit a pull request.
