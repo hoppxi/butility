@@ -19,7 +19,6 @@ import {CreditCard} from "./form/creditCard.js";
 import {Image} from "./media/device-media/image.js";
 import {Capture} from "./media/device-media/capture.js";
 import {FullScreen} from "./media/device-media/fullScreen.js";
-import {QRCode} from "./media/device-media/qrcode.js";
 import {File} from "./media/file/file.js";
 import {Blob} from "./media/file/blob.js";
 // network modules
@@ -45,7 +44,7 @@ const Butility = {
 export default Butility;
 export { Element, Attribute, Obj, String, Scroll, Utility, Ripple, RippleEffect, DragDrop, Style, Color, Modal, Tooltip };
 export { Validate, CreditCard, FormAction, SerializeForm };
-export { File, QRCode, Blob, Image, Capture, FullScreen };
+export { File, Blob, Image, Capture, FullScreen };
 export { IP, RequestServer, URLClass, WebWorker };
 export { DetectDevice, DetectFeature, EnvInfo, DeviceStorage, BrowserStorage };
 
