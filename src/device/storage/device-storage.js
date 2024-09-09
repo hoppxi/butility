@@ -42,7 +42,7 @@ export class DeviceStorage {
      * @returns {Promise<boolean>} - A promise that resolves with a boolean indicating if there is enough free space.
      */
     static async hasEnoughFreeSpace(requiredSpace) {
-        return DeviceStorageManager.getAvailableStorageSpace().then((availableSpace) => availableSpace >= requiredSpace);
+        return this.getAvailableStorageSpace().then((availableSpace) => availableSpace >= requiredSpace);
     }
 
     /**
