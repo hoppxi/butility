@@ -1,6 +1,6 @@
 {
   "name": "butility",
-  "version": "1.1.1",
+  "version": "1.1.2",
   "description": "Browser Utility, a set of utility classes, is the new version of the deprecated Awedde package, offering a streamlined set of utility classes across four modules: DOM, Form, Network, and Media and Device. These utilities simplify common web development tasks, replacing the deprecated Awedde package with improved functionality, reduced redundancy, and enhanced code quality.",
   "main": "butility.js",
   "type": "module",
