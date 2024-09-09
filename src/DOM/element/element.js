@@ -16,9 +16,7 @@ export class Element {
      * @param {Object} options - The options for creating the element.
      * @param {string} options.name - The tag name of the element.
      * @param {Array<string>} [options.class] - The classes to add to the element.
-     * @param {Object} [options.attr] - The attributes to set for the element.
-     * @param {string} [options.attr.id] - The id attribute of the element.
-     * @param {string} [options.attr.type] - The type attribute of the element.
+     * @param {Object<string, string>} [options.attr] - The attributes to set for the element.
      * @param {string} [options.innerText] - The inner text of the element.
      * @param {string} [options.innerHTML] - The inner HTML of the element.
      * @param {Array<HTMLElement>} [options.children] - The child elements to append to the element.
