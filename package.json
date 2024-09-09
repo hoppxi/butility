@@ -5,7 +5,7 @@
   "main": "butility.js",
   "type": "module",
   "scripts": {
-    "build": "esbuild src/index.js --bundle --outfile=butility.js --format=iife --global-name=Butility",
+    "build": "esbuild src/index.js --bundle --outfile=butility.js --format=iife",
     "build:esm": "esbuild src/index.js --bundle --outfile=butility.esm.js --format=esm"
   },
   "repository": {
