@@ -1,59 +1,4 @@
-var Butility = (() => {
-  var __defProp = Object.defineProperty;
-  var __getOwnPropDesc = Object.getOwnPropertyDescriptor;
-  var __getOwnPropNames = Object.getOwnPropertyNames;
-  var __hasOwnProp = Object.prototype.hasOwnProperty;
-  var __export = (target, all) => {
-    for (var name in all)
-      __defProp(target, name, { get: all[name], enumerable: true });
-  };
-  var __copyProps = (to, from, except, desc) => {
-    if (from && typeof from === "object" || typeof from === "function") {
-      for (let key of __getOwnPropNames(from))
-        if (!__hasOwnProp.call(to, key) && key !== except)
-          __defProp(to, key, { get: () => from[key], enumerable: !(desc = __getOwnPropDesc(from, key)) || desc.enumerable });
-    }
-    return to;
-  };
-  var __toCommonJS = (mod) => __copyProps(__defProp({}, "__esModule", { value: true }), mod);
-
-  // src/index.js
-  var src_exports = {};
-  __export(src_exports, {
-    Attribute: () => Attribute,
-    Blob: () => Blob2,
-    BrowserStorage: () => BrowserStorage,
-    Capture: () => Capture,
-    Color: () => Color,
-    CreditCard: () => CreditCard,
-    DetectDevice: () => DetectDevice,
-    DetectFeature: () => DetectFeature,
-    DeviceStorage: () => DeviceStorage,
-    DragDrop: () => DragDrop,
-    Element: () => Element,
-    EnvInfo: () => EnvInfo,
-    File: () => File,
-    FormAction: () => FormAction,
-    FullScreen: () => FullScreen,
-    IP: () => IP,
-    Image: () => Image2,
-    Modal: () => Modal,
-    Obj: () => Obj,
-    QRCode: () => QRCode,
-    RequestServer: () => RequestServer,
-    Ripple: () => Ripple,
-    RippleEffect: () => RippleEffect,
-    Scroll: () => Scroll,
-    SerializeForm: () => SerializeForm,
-    String: () => String2,
-    Style: () => Style,
-    Tooltip: () => Tooltip,
-    URLClass: () => URLClass,
-    Utility: () => Utility,
-    Validate: () => Validate,
-    WebWorker: () => WebWorker
-  });
-
+(() => {
   // src/DOM/element/element.js
   var Element = class {
     /**
@@ -61,9 +6,7 @@ var Butility = (() => {
      * @param {Object} options - The options for creating the element.
      * @param {string} options.name - The tag name of the element.
      * @param {Array<string>} [options.class] - The classes to add to the element.
-     * @param {Object} [options.attr] - The attributes to set for the element.
-     * @param {string} [options.attr.id] - The id attribute of the element.
-     * @param {string} [options.attr.type] - The type attribute of the element.
+     * @param {Object<string, string>} [options.attr] - The attributes to set for the element.
      * @param {string} [options.innerText] - The inner text of the element.
      * @param {string} [options.innerHTML] - The inner HTML of the element.
      * @param {Array<HTMLElement>} [options.children] - The child elements to append to the element.
@@ -2569,12 +2512,25 @@ var Butility = (() => {
   var CreditCard = class {
     /**
      * Check if the provided credit card number is valid.
+     * Using Luhn's algorithm for better validation.
      *
      * @param {string} cardNumber - The credit card number to validate.
      * @returns {boolean} - True if the credit card number is valid, false otherwise.
      */
     static isValidCreditCardNumber(cardNumber) {
-      return /^\d{16}$/.test(cardNumber);
+      if (!/^\d{16}$/.test(cardNumber)) return false;
+      let sum = 0;
+      let shouldDouble = false;
+      for (let i = cardNumber.length - 1; i >= 0; i--) {
+        let digit = +cardNumber[i];
+        if (shouldDouble) {
+          digit *= 2;
+          if (digit > 9) digit -= 9;
+        }
+        sum += digit;
+        shouldDouble = !shouldDouble;
+      }
+      return sum % 10 === 0;
     }
     /**
      * Check if the provided credit card expiry date is valid.
@@ -2583,9 +2539,16 @@ var Butility = (() => {
      * @returns {boolean} - True if the expiry date is valid, false otherwise.
      */
     static isValidCreditCardExpiry(expiryDate) {
-      const [month, year] = expiryDate.split("/");
-      const currentYear = (/* @__PURE__ */ new Date()).getFullYear() % 100;
-      return /^\d{2}$/.test(month) && /^\d{2}$/.test(year) && +month <= 12 && +year >= currentYear;
+      if (!/^\d{2}\/\d{2}$/.test(expiryDate)) return false;
+      const [month, year] = expiryDate.split("/").map(Number);
+      const currentDate = /* @__PURE__ */ new Date();
+      const currentMonth = currentDate.getMonth() + 1;
+      const currentYear = currentDate.getFullYear() % 100;
+      if (month < 1 || month > 12) return false;
+      if (year < currentYear || year === currentYear && month < currentMonth) {
+        return false;
+      }
+      return true;
     }
     /**
      * Check if the provided credit card CVV is valid.
@@ -2594,7 +2557,7 @@ var Butility = (() => {
      * @returns {boolean} - True if the CVV is valid, false otherwise.
      */
     static isValidCreditCardCVV(cvv) {
-      return /^\d{3}$/.test(cvv);
+      return /^\d{3,4}$/.test(cvv);
     }
     /**
      * Mask the provided credit card number, showing only the last four digits.
@@ -2603,28 +2566,7 @@ var Butility = (() => {
      * @returns {string} - The masked credit card number.
      */
     static maskCreditCardNumber(cardNumber) {
-      const maskedDigits = "*".repeat(cardNumber.length - 4);
-      const lastFourDigits = cardNumber.slice(-4);
-      return maskedDigits + lastFourDigits;
-    }
-    /**
-     * Format the provided credit card expiry date.
-     *
-     * @param {string} expiryDate - The credit card expiry date to format (MM/YY).
-     * @returns {string} - The formatted expiry date.
-     */
-    static formatCreditCardExpiry(expiryDate) {
-      const [month, year] = expiryDate.split("/");
-      return `${month}/${year}`;
-    }
-    /**
-     * Format the provided credit card CVV.
-     *
-     * @param {string} cvv - The credit card CVV to format.
-     * @returns {string} - The formatted CVV.
-     */
-    static formatCreditCardCVV(cvv) {
-      return cvv;
+      return cardNumber.slice(-4).padStart(cardNumber.length, "*");
     }
   };
 
@@ -2944,63 +2886,6 @@ var Butility = (() => {
      */
     static getFullscreenElement() {
       return document.fullscreenElement || document.webkitFullscreenElement || document.mozFullScreenElement || document.msFullscreenElement || null;
-    }
-  };
-
-  // src/media/device-media/qrcode.js
-  var QRCode = class _QRCode {
-    /**
-     * Generates a QR code and renders it onto a canvas element.
-     * @param {string} data - The data to be encoded in the QR code.
-     * @param {number} size - The size of the QR code.
-     * @param {HTMLCanvasElement} canvas - The canvas element to render the QR code onto.
-     */
-    static generateQRCode(data, size, canvas) {
-      const qrCanvas = document.createElement("canvas");
-      qrCanvas.width = size;
-      qrCanvas.height = size;
-      const qrContext = qrCanvas.getContext("2d");
-      qrContext.clearRect(0, 0, size, size);
-      const qr = new _QRCode(qrCanvas, {
-        text: data,
-        width: size,
-        height: size
-      });
-      canvas.width = size;
-      canvas.height = size;
-      const context = canvas.getContext("2d");
-      context.drawImage(qrCanvas, 0, 0);
-    }
-    /**
-     * Initializes the camera and scans for a QR code.
-     * @param {HTMLVideoElement} video - The video element to display the camera feed.
-     * @param {function} onScan - Callback function to handle the scanned QR code data.
-     */
-    static scanQRCode(video, onScan) {
-      navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } }).then((stream) => {
-        video.srcObject = stream;
-        video.play();
-        const canvas = document.createElement("canvas");
-        const context = canvas.getContext("2d");
-        const scanFrame = () => {
-          context.drawImage(video, 0, 0, video.width, video.height);
-          const imageData = context.getImageData(0, 0, video.width, video.height);
-          try {
-            const code = jsQR(imageData.data, imageData.width, imageData.height, {
-              inversionAttempts: "dontInvert"
-            });
-            if (code) {
-              onScan(code.data);
-            }
-          } catch (error) {
-            console.error("Error scanning QR code:", error);
-          }
-          requestAnimationFrame(scanFrame);
-        };
-        scanFrame();
-      }).catch((error) => {
-        console.error("Error accessing camera:", error);
-      });
     }
   };
 
@@ -5170,7 +5055,7 @@ var Butility = (() => {
      * @returns {Promise<boolean>} - A promise that resolves with a boolean indicating if there is enough free space.
      */
     static async hasEnoughFreeSpace(requiredSpace) {
-      return DeviceStorageManager.getAvailableStorageSpace().then((availableSpace) => availableSpace >= requiredSpace);
+      return this.getAvailableStorageSpace().then((availableSpace) => availableSpace >= requiredSpace);
     }
     /**
      * Get the storage type of the device (e.g., 'temporary', 'persistent').
@@ -5203,7 +5088,43 @@ var Butility = (() => {
       return -1;
     }
   };
-  return __toCommonJS(src_exports);
+
+  // src/index.js
+  var Butility = {
+    Element,
+    Attribute,
+    Obj,
+    String: String2,
+    Scroll,
+    Utility,
+    Ripple,
+    RippleEffect,
+    DragDrop,
+    Style,
+    Color,
+    Modal,
+    Tooltip,
+    Validate,
+    CreditCard,
+    FormAction,
+    SerializeForm,
+    File,
+    QRCode,
+    Blob: Blob2,
+    Image: Image2,
+    Capture,
+    FullScreen,
+    IP,
+    RequestServer,
+    URLClass,
+    WebWorker,
+    DetectDevice,
+    DetectFeature,
+    EnvInfo,
+    DeviceStorage,
+    BrowserStorage
+  };
+  var src_default = Butility;
 })();
 /**
  * @author - Ermiyas Arage
