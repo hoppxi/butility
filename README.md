@@ -2,14 +2,6 @@
 
 **Butility** is a handy JavaScript package designed to simplify common tasks in web apps. It’s packed with useful methods for dealing with the DOM, devices, media, networks, and forms. **Butility** is made for the browser, so it’s all about making your web development easier and more efficient.
 
-## Features
-
-- **DOM**: Easily manipulate and interact with the Document Object Model.
-- **Device**: Get useful information about the user’s device.
-- **Media**: Manage media files and streams effortlessly.
-- **Network**: Handle network-related tasks with ease.
-- **Form**: Simplify form validation and handling.
-
 ## Installation
 
 Just add Butility to your project:
@@ -21,30 +13,19 @@ npm install butility
 Or include it directly in your HTML:
 
 ```html
-<script src="path/to/butility.js"></script> <!-- Without import -->
-<script src="path/to/butility.esm.js" type="module"></script> <!-- With import (esm) -->
+<script src="path/to/butility.js" type="module"></script>
 ```
 
 ### CDN
 
 You can include **Butility** directly in your HTML using various CDNs:
 
-#### jsDelivr
-
 ```html
-<!-- Standard version -->
-<script src="https://cdn.jsdelivr.net/npm/butility@latest/butility.min.js"></script>
-<!-- ESM version -->
-<script src="https://cdn.jsdelivr.net/npm/butility@latest/butility.esm.min.js" type="module"></script>
-```
+<!-- JSDelivr -->
+<script src="https://cdn.jsdelivr.net/npm/butility@latest/butility.min.js" type="module"></script>
 
-#### UNPKG
-
-```html
-<!-- Standard version -->
-<script src="https://unpkg.com/butility@latest/butility.min.js"></script>
-<!-- ESM version -->
-<script src="https://unpkg.com/butility@latest/butility.esm.min.js" type="module"></script>
+<!-- UNPKG -->
+<script src="https://unpkg.com/butility@latest/butility.js" type="module"></script>
 ```
 
 ### ZIP file download
@@ -56,7 +37,7 @@ Using **Butility** is straightforward. Here’s a quick example with esm:
 
 ```javascript
 // Use ESM version
-import { Element, Validate } from "./butility.esm.js";
+import { Element, Validate } from "./butility.js";
 
 const emailInput = Element.createElement({  // Using the dom Element method
     name: 'input',
@@ -70,21 +51,25 @@ const emailInput = Element.createElement({  // Using the dom Element method
     },
 }, e => {
     e.addEventListener('change', () => {
-        Validate.validateEmailAddress(e.value); // Using form Validate method
+        if (Validate.validateEmailAddress(e.value)) {
+            console.log("Email: pass!");
+        } else {
+            console.log("Enter correct email pls!");
+        } // Using form Validate method
     });
 });
 
 Element.appendElement(document.body, emailInput);
 ```
-and with direct access in html:
+and in html:
 
 ```html
 <!-- Use standard version -->
 <script src="./butility.js"></script>
 <script>
-    // Without import, use the classes (eg. ClassUtility)
+    import { Utility } from "./butility.js"
     const button = document.querySelector('button');
-    ClassUtility.addClasses(button, 'you-first-class','second-class' /* continue as your need!*/);
+    Utility.addClasses(button, 'you-first-class','second-class' /* continue as your need!*/);
 </script>
 ```
 
@@ -92,20 +77,8 @@ Each module is packed with helpful methods that make your web development life e
 
 ## API Documentation
 
-For detailed information on how to use each method in Butility, check out the [API documentation on the GitHub Wiki](https://github.com/ermi111/butility/wiki).
-
-## Modules Overview
-
-- **DOM**: Tools to interact with the DOM like adding/removing classes, event handling, etc.
-- **Device**: Methods to detect the user’s browser, OS, and more.
-- **Media**: Manage and manipulate media files or streams.
-- **Network**: Check network status, handle requests, etc.
-- **Form**: Easily validate and manage form inputs.
+Check out the [API documentation on the GitHub Wiki](https://github.com/ermi111/butility/wiki).
 
 ## License
 
-This project is open-source under the [MIT License](https://github.com/ermi111/butility?tab=MIT-1-ov-file).
-
-## Contributing
-
-contribution is welcome! If you find any bugs or have ideas for improvements, please open an issue or submit a pull request.
+[MIT License](https://github.com/ermi111/butility?tab=MIT-1-ov-file). [Ermiyas](https://github.com/ermi111)
