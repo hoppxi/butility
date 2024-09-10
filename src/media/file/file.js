@@ -1,7 +1,7 @@
 
 /**
  * @author - Ermiyas Arage
- * @license Apache-2.0
+ * @license MIT
  */
 
 import { RequestServer } from '../../network/request/server.js';
