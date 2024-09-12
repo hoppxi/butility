@@ -1,3 +1,10 @@
+var __require = /* @__PURE__ */ ((x) => typeof require !== "undefined" ? require : typeof Proxy !== "undefined" ? new Proxy(x, {
+  get: (a, b) => (typeof require !== "undefined" ? require : a)[b]
+}) : x)(function(x) {
+  if (typeof require !== "undefined") return require.apply(this, arguments);
+  throw Error('Dynamic require of "' + x + '" is not supported');
+});
+
 // src/DOM/element/element.js
 var Element = class {
   /**
@@ -389,7 +396,7 @@ var Element = class {
 };
 
 // src/DOM/element/attribute.js
-var Attribute = class _Attribute {
+var Attribute = class {
   /**
    * Set the value of an attribute on an element.
    * @param {HTMLElement} element - The target element.
@@ -456,10 +463,10 @@ var Attribute = class _Attribute {
    * @param {string} attributeName - The name of the attribute to toggle.
    */
   static toggleElementAttribute(element, attributeName) {
-    if (_Attribute.hasElementAttribute(element, attributeName)) {
-      _Attribute.removeElementAttribute(element, attributeName);
+    if (this.hasElementAttribute(element, attributeName)) {
+      this.removeElementAttribute(element, attributeName);
     } else {
-      _Attribute.setElementAttribute(element, attributeName, "");
+      this.setElementAttribute(element, attributeName, "");
     }
   }
   /**
@@ -1170,7 +1177,7 @@ var Style = class {
 };
 
 // src/DOM/main/utility.js
-var Utility = class _Utility {
+var Utility = class {
   /**
    * Adds a CSS class to an HTML element.
    * @param {HTMLElement} element - The HTML element.
@@ -1259,11 +1266,11 @@ var Utility = class _Utility {
    */
   static toggleClassConditionally(element, condition, trueClass, falseClass) {
     if (condition) {
-      _Utility.addClass(element, trueClass);
-      _Utility.removeClass(element, falseClass);
+      this.addClass(element, trueClass);
+      this.removeClass(element, falseClass);
     } else {
-      _Utility.addClass(element, falseClass);
-      _Utility.removeClass(element, trueClass);
+      this.addClass(element, falseClass);
+      this.removeClass(element, trueClass);
     }
   }
   /**
@@ -1282,7 +1289,7 @@ var Utility = class _Utility {
    */
   static hasAnyClass(element, classArray) {
     for (const className of classArray) {
-      if (typeof className === "string" && element.classList.contains(className)) {
+      if (typeof className === "string" && this.hasClass(element, className)) {
         return true;
       }
     }
@@ -1298,8 +1305,8 @@ var Utility = class _Utility {
     const classNames = Array.from(element.classList);
     classNames.forEach((className) => {
       if (className.startsWith(oldPrefix)) {
-        _Utility.removeClass(className);
-        _Utility.addClass(element, className.replace(oldPrefix, newPrefix));
+        this.removeClass(className);
+        this.addClass(element, className.replace(oldPrefix, newPrefix));
       }
     });
   }
@@ -1309,8 +1316,8 @@ var Utility = class _Utility {
    * @param {string} className - The class name to add.
    */
   static addUniqueClass(element, className) {
-    if (!_Utility.hasClass(element, className)) {
-      _Utility.addClass(element, className);
+    if (!this.hasClass(element, className)) {
+      this.addClass(element, className);
     }
   }
   /**
@@ -1322,7 +1329,7 @@ var Utility = class _Utility {
     const handleScroll = () => {
       const rect = this.element.getBoundingClientRect();
       if (rect.top >= 0 && rect.bottom <= window.innerHeight) {
-        _Utility.addClass(element, className);
+        this.addClass(element, className);
         window.removeEventListener("scroll", handleScroll);
       }
     };
@@ -1335,11 +1342,11 @@ var Utility = class _Utility {
    * @param {string} className - The class name to add.
    */
   static toggleClassOnFocus(element, className) {
-    this.element.addEventListener("focus", () => {
-      _Utility.addClass(element, className);
+    element.addEventListener("focus", () => {
+      this.addClass(element, className);
     });
-    this.element.addEventListener("blur", () => {
-      _Utility.removeClass(element, className);
+    element.addEventListener("blur", () => {
+      this.removeClass(element, className);
     });
   }
   /**
@@ -1352,7 +1359,7 @@ var Utility = class _Utility {
     const mediaQueryList = window.matchMedia(mediaQuery);
     const handleMediaQueryChange = (event) => {
       if (event.matches) {
-        _Utility.toggleClass(element, className);
+        this.toggleClass(element, className);
       }
     };
     mediaQueryList.addListener(handleMediaQueryChange);
@@ -1365,7 +1372,7 @@ var Utility = class _Utility {
    */
   toggleClassOnCopy(element, className) {
     this.element.addEventListener("copy", () => {
-      _Utility.toggleClass(element, className);
+      this.toggleClass(element, className);
     });
   }
   /**
@@ -1379,7 +1386,7 @@ var Utility = class _Utility {
     const resetIdleTimer = () => {
       clearTimeout(idleTimer);
       idleTimer = setTimeout(() => {
-        _Utility.toggleClass(element, className);
+        this.toggleClass(element, className);
       }, idleTime);
     };
     document.addEventListener("mousemove", resetIdleTimer);
@@ -1392,7 +1399,7 @@ var Utility = class _Utility {
    */
   static addClassOnInterval(element, className, interval = 1e3) {
     setInterval(() => {
-      _Utility.addClass(element, className);
+      this.addClass(element, className);
     }, interval);
   }
   /**
@@ -1401,7 +1408,7 @@ var Utility = class _Utility {
    */
   removeClassOnInterval(element, className, interval = 1e3) {
     setInterval(() => {
-      _Utility.removeClass(element, className);
+      this.removeClass(element, className);
     }, interval);
   }
   /**
@@ -1413,7 +1420,7 @@ var Utility = class _Utility {
     window.addEventListener("deviceorientation", (event) => {
       const tiltThreshold = 20;
       const isTilted = Math.abs(event.beta) > tiltThreshold || Math.abs(event.gamma) > tiltThreshold;
-      _Utility.toggleClass(element, className, isTilted);
+      this.toggleClass(element, className, isTilted);
     });
   }
   /**
@@ -1424,7 +1431,7 @@ var Utility = class _Utility {
   static toggleClassOnOrientationChange(element, className) {
     const handleOrientationChange = () => {
       const orientation = window.matchMedia("(orientation: portrait)").matches ? "portrait" : "landscape";
-      _Utility.toggleClass(element, `${className}-${orientation}`);
+      this.toggleClass(element, `${className}-${orientation}`);
     };
     window.addEventListener("orientationchange", handleOrientationChange);
     handleOrientationChange();
@@ -1444,9 +1451,9 @@ var Utility = class _Utility {
       const deltaX = event.changedTouches[0].clientX - startX;
       const deltaY = event.changedTouches[0].clientY - startY;
       if (Math.abs(deltaX) > Math.abs(deltaY)) {
-        _Utility.toggleClass(element, `${className}-horizontal`);
+        this.toggleClass(element, `${className}-horizontal`);
       } else {
-        _Utility.toggleClass(element, `${className}-vertical`);
+        this.toggleClass(element, `${className}-vertical`);
       }
     });
   }
@@ -1458,7 +1465,7 @@ var Utility = class _Utility {
   static toggleClassOnConnectionStatus(element, className) {
     const handleConnectionChange = () => {
       const isOnline = navigator.onLine;
-      _Utility.toggleClass(element, className, isOnline);
+      this.toggleClass(element, className, isOnline);
     };
     window.addEventListener("online", handleConnectionChange);
     window.addEventListener("offline", handleConnectionChange);
@@ -1472,7 +1479,7 @@ var Utility = class _Utility {
   static toggleClassOnGeolocationChange(element, className) {
     navigator.geolocation.watchPosition(
       (position) => {
-        _Utility.toggleClass(element, className);
+        this.toggleClass(element, className);
       },
       (error) => {
         console.error(error);
@@ -1583,7 +1590,7 @@ var DragDrop = class {
 };
 
 // src/DOM/general/scroll.js
-var Scroll = class _Scroll {
+var Scroll = class {
   /**
    * Fades in an element over a specified duration.
    * @param {HTMLElement} element - The element to fade in.
@@ -1593,7 +1600,7 @@ var Scroll = class _Scroll {
   static fadeIn(element, duration, callback2) {
     const startOpacity = 0;
     const endOpacity = 1;
-    _Scroll.animateOpacity(element, startOpacity, endOpacity, duration, callback2);
+    this.animateOpacity(element, startOpacity, endOpacity, duration, callback2);
   }
   /**
    * Fades out an element over a specified duration.
@@ -1604,7 +1611,7 @@ var Scroll = class _Scroll {
   static fadeOut(element, duration, callback2) {
     const startOpacity = 1;
     const endOpacity = 0;
-    _Scroll.animateOpacity(element, startOpacity, endOpacity, duration, callback2);
+    this.animateOpacity(element, startOpacity, endOpacity, duration, callback2);
   }
   /**
    * Slides down an element over a specified duration.
@@ -1613,7 +1620,7 @@ var Scroll = class _Scroll {
    * @param {Function} [callback] - An optional callback function to execute after the slide-down is complete.
    */
   static slideDown(element, duration, callback2) {
-    _Scroll.animateHeight(element, 0, _Scroll.getFullHeight(element), duration, callback2);
+    this.animateHeight(element, 0, this.getFullHeight(element), duration, callback2);
   }
   /**
    * Slides up an element over a specified duration.
@@ -1622,7 +1629,7 @@ var Scroll = class _Scroll {
    * @param {Function} [callback] - An optional callback function to execute after the slide-up is complete.
    */
   static slideUp(element, duration, callback2) {
-    _Scroll.animateHeight(element, _Scroll.getFullHeight(element), 0, duration, callback2);
+    this.animateHeight(element, this.getFullHeight(element), 0, duration, callback2);
   }
   /**
    * Toggles the visibility of an element by sliding it up or down over a specified duration.
@@ -1631,10 +1638,10 @@ var Scroll = class _Scroll {
    * @param {Function} [callback] - An optional callback function to execute after the toggle is complete.
    */
   static slideToggle(element, duration, callback2) {
-    if (_Scroll.isElementVisible(element)) {
-      _Scroll.slideUp(element, duration, callback2);
+    if (this.isElementVisible(element)) {
+      this.slideUp(element, duration, callback2);
     } else {
-      _Scroll.slideDown(element, duration, callback2);
+      this.slideDown(element, duration, callback2);
     }
   }
   /**
@@ -1664,7 +1671,7 @@ var Scroll = class _Scroll {
     let currentTime = 0;
     const animateScroll = () => {
       currentTime += increment;
-      const val = _Scroll.easeInOutQuad(currentTime, start, change, duration);
+      const val = this.easeInOutQuad(currentTime, start, change, duration);
       window.scrollTo(0, val);
       if (currentTime < duration) {
         setTimeout(animateScroll, increment);
@@ -1686,7 +1693,7 @@ var Scroll = class _Scroll {
     const animate = (timestamp) => {
       const elapsed = timestamp - startTime;
       const progress = elapsed / duration;
-      const opacity = _Scroll.easeInOutQuad(progress, startOpacity, endOpacity - startOpacity, 1);
+      const opacity = this.easeInOutQuad(progress, startOpacity, endOpacity - startOpacity, 1);
       Style.addStyles(element, { opacity: opacity.toString() });
       if (progress < 1) {
         requestAnimationFrame(animate);
@@ -1710,7 +1717,7 @@ var Scroll = class _Scroll {
     const animate = (timestamp) => {
       const elapsed = timestamp - startTime;
       const progress = elapsed / duration;
-      const height = _Scroll.easeInOutQuad(progress, startHeight, endHeight - startHeight, 1);
+      const height = this.easeInOutQuad(progress, startHeight, endHeight - startHeight, 1);
       Style.addStyles(element, { height: height + "px" });
       if (progress < 1) {
         requestAnimationFrame(animate);
@@ -1776,7 +1783,7 @@ var Scroll = class _Scroll {
     let currentTime = 0;
     const animateScroll = () => {
       currentTime += increment;
-      const val = _Scroll.easeInOutQuad(currentTime, start, change, duration);
+      const val = this.easeInOutQuad(currentTime, start, change, duration);
       window.scrollTo(0, val);
       if (currentTime < duration) {
         setTimeout(animateScroll, increment);
@@ -1791,7 +1798,7 @@ var Scroll = class _Scroll {
    */
   static smoothScrollToElement(element, duration) {
     const elementTop = element.getBoundingClientRect().top + window.scrollY;
-    _Scroll.smoothScrollToPosition(elementTop, duration);
+    this.smoothScrollToPosition(elementTop, duration);
   }
   /**
    * Scrolls to the specified element without animation.
@@ -1809,7 +1816,7 @@ var Scroll = class _Scroll {
    * @param {number} duration - The duration of the smooth scroll in milliseconds.
    */
   static scrollToTop(duration) {
-    _Scroll.smoothScrollToPosition(0, duration);
+    this.smoothScrollToPosition(0, duration);
   }
   /**
    * Scrolls smoothly to the bottom of the page over a specified duration.
@@ -1824,7 +1831,7 @@ var Scroll = class _Scroll {
       document.documentElement.offsetHeight
     );
     const scrollPosition = documentHeight - window.innerHeight;
-    _Scroll.smoothScrollToPosition(scrollPosition, duration);
+    this.smoothScrollToPosition(scrollPosition, duration);
   }
   /**
    * Scrolls to the specified position within an element.
@@ -1893,9 +1900,13 @@ var Modal = class {
    * @returns {HTMLElement} - The created modal element.
    */
   static createModal(options) {
-    const modal = document.createElement("div");
-    modal.id = options.id || "modal";
-    Utility.addClass(modal, options.class || "modal");
+    const modal = Element.createElement({
+      name: "div",
+      attr: {
+        id: options.is || "modal",
+        class: options.class || "modal"
+      }
+    });
     return modal;
   }
   /**
@@ -1928,7 +1939,7 @@ var Modal = class {
   static destroyModal(modalId) {
     const modal = document.getElementById(modalId);
     if (modal) {
-      modal.remove();
+      Element.removeElement(modal);
     }
   }
   /**
@@ -1940,7 +1951,7 @@ var Modal = class {
   static setModalContent(modalId, content) {
     const modal = document.getElementById(modalId);
     if (modal) {
-      modal.innerHTML = content;
+      Element.setElementHTML(modal, content);
     }
   }
   /**
@@ -1951,7 +1962,7 @@ var Modal = class {
    */
   static getModalContent(modalId) {
     const modal = document.getElementById(modalId);
-    return modal ? modal.innerHTML : "";
+    return modal ? Element.getElementHTML(modal) : "";
   }
 };
 
@@ -3569,7 +3580,7 @@ var IP = class {
    * @returns {boolean} - True if the IPv4 address is valid, false otherwise.
    */
   static validateIPv4Address(ip) {
-    const ipv4Regex = /^(\d{1,3}\.){3}\d{1,3}$/;
+    const ipv4Regex = /^(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/;
     return ipv4Regex.test(ip);
   }
   /**
@@ -3578,64 +3589,188 @@ var IP = class {
    * @returns {boolean} - True if the IPv6 address is valid, false otherwise.
    */
   static validateIPv6Address(ip) {
-    const ipv6Regex = /^(?:[0-9a-fA-F]{1,4}:){7}[0-9a-fA-F]{1,4}$/;
+    const ipv6Regex = /^(::(?:[fF]{4}:))(\d+\.\d+\.\d+\.\d+)$/;
     return ipv6Regex.test(ip);
   }
   /**
    * Converts an IPv4 address to IPv6 format.
    * @param {string} ip - The IPv4 address to convert.
-   * @returns {string} - The IPv6 address derived from the given IPv4 address.
+   * @returns {string | null} - The IPv6 address derived from the given IPv4 address, or null if the IPv4 is invalid.
    */
   static convertIPv4ToIPv6(ip) {
-    return `::ffff:${ip}`;
+    if (!this.validateIPv4Address(ip)) {
+      console.error("Invalid IPv4 address provided.");
+      return null;
+    }
+    const segments = ip.split(".").map(Number);
+    const hexSegments = segments.map((segment) => segment.toString(16).padStart(2, "0"));
+    const ipv6 = `::ffff:${hexSegments.join(":")}`;
+    return ipv6;
   }
   /**
    * Converts an IPv6 address to IPv4 format.
    * @param {string} ip - The IPv6 address to convert.
-   * @returns {string|null} - The IPv4 address derived from the given IPv6 address,
-   *                          or null if the input is not a valid IPv6 address with an IPv4 prefix.
+   * @returns {string | null} - The IPv4 address derived from the given IPv6 address, or null if the input is not valid.
    */
   static convertIPv6ToIPv4(ip) {
-    const ipv4Regex = /::ffff:(\d+\.\d+\.\d+\.\d+)/;
+    if (!this.validateIPv6Address(ip)) {
+      console.error("Invalid IPv6 address provided.");
+      return null;
+    }
+    const ipv4Regex = /::ffff:([\da-f]{2}):([\da-f]{2}):([\da-f]{2}):([\da-f]{2})/i;
     const match = ip.match(ipv4Regex);
-    return match ? match[1] : null;
-  }
-};
-
-// src/network/web-worker/webWorker.js
-var WebWorker = class {
-  /**
-   * Create a new web worker.
-   * @param {string} scriptUrl - The URL of the worker script.
-   * @returns {Worker} - The created web worker.
-   */
-  static createWorker(scriptUrl) {
-    return new Worker(scriptUrl);
+    if (!match) {
+      console.error("Not a valid IPv6-mapped IPv4 address.");
+      return null;
+    }
+    const ipv4Parts = match.slice(1, 5).map((hex) => parseInt(hex, 16));
+    const ipv4 = ipv4Parts.join(".");
+    return ipv4;
   }
   /**
-   * Terminate a web worker.
-   * @param {Worker} worker - The web worker to terminate.
+   * Normalizes an IPv6 address to its full form (e.g., expanding "::" to its full representation).
+   * @param {string} ip - The IPv6 address to normalize.
+   * @returns {string|null} - The normalized IPv6 address, or null if invalid.
    */
-  static terminateWorker(worker) {
-    worker.terminate();
+  static normalizeIPv6(ip) {
+    if (!this.validateIPv6Address(ip)) return null;
+    try {
+      const normalized = __require("ip").toLong(ip);
+      return normalized;
+    } catch (e) {
+      console.error("Error normalizing IPv6:", e);
+      return null;
+    }
   }
   /**
-   * Post a message to a web worker.
-   * @param {Worker} worker - The web worker to send the message to.
-   * @param {any} message - The message to post to the worker.
+   * Determines the version of the given IP address.
+   * @param {string} ip - The IP address to check.
+   * @returns {4 | 6 | null} - The IP version (4 or 6), or null if invalid.
    */
-  static postMessageToWorker(worker, message) {
-    worker.postMessage(message);
+  static getIPVersion(ip) {
+    if (this.validateIPv4Address(ip)) return 4;
+    if (this.validateIPv6Address(ip)) return 6;
+    return null;
   }
   /**
-   * Handle messages from a web worker.
-   * @param {Worker} worker - The web worker to listen for messages.
-   * @param {Function} callback - The callback function to handle messages.
+  * Checks if the provided IP address is private (e.g., from a local network).
+  * @param {string} ip - The IP address to check.
+  * @returns {boolean} - True if the IP address is private, false otherwise.
+  */
+  static isPrivateIP(ip) {
+    if (!this.validateIPv4Address(ip)) return false;
+    const privateRanges = [
+      /^10\./,
+      // 10.0.0.0 - 10.255.255.255
+      /^172\.(1[6-9]|2[0-9]|3[0-1])\./,
+      // 172.16.0.0 - 172.31.255.255
+      /^192\.168\./
+      // 192.168.0.0 - 192.168.255.255
+    ];
+    return privateRanges.some((range) => range.test(ip));
+  }
+  /**
+  * Retrieves the user's IP address (server-side, Node.js).
+  * @param {Request} req - The incoming HTTP request object.
+  * @returns {string|null} - The IP address of the user, or null if not found.
+  */
+  static getUserIPAddress(req) {
+    const ip = req.headers["x-forwarded-for"] || req.connection.remoteAddress || req.socket.remoteAddress || null;
+    if (ip && this.validateIPv4Address(ip)) {
+      return ip;
+    }
+    return null;
+  }
+  /**
+   * Generates a random valid IPv4 address.
+   * @returns {string} - A random IPv4 address.
    */
-  static handleWorkerMessage(worker, callback2) {
-    worker.onmessage = (event) => {
-      callback2(event.data);
-    };
+  static generateRandomIPv4() {
+    return Array(4).fill(0).map(() => Math.floor(Math.random() * 256)).join(".");
+  }
+  /**
+   * Generates a random IPv6 address.
+   * @returns {string} - A randomly generated IPv6 address.
+   */
+  static generateRandomIPv6() {
+    const getRandomHex = () => Math.floor(Math.random() * 65536).toString(16);
+    const segments = Array.from({ length: 8 }, getRandomHex);
+    return segments.join(":");
+  }
+  /**
+   * Validates if a given subnet mask is correct for IPv4.
+   * @param {string} mask - The subnet mask to validate.
+   * @returns {boolean} - True if the subnet mask is valid, false otherwise.
+   */
+  static isValidSubnetMask(mask) {
+    const validMasks = [
+      "255.255.255.255",
+      "255.255.255.254",
+      "255.255.255.252",
+      "255.255.255.248",
+      "255.255.255.240",
+      "255.255.255.224",
+      "255.255.255.192",
+      "255.255.255.128",
+      "255.255.255.0",
+      "255.255.254.0",
+      "255.255.252.0",
+      "255.255.248.0",
+      "255.255.240.0",
+      "255.255.224.0",
+      "255.255.192.0",
+      "255.255.128.0",
+      "255.255.0.0",
+      "255.254.0.0",
+      "255.252.0.0",
+      "255.248.0.0",
+      "255.240.0.0",
+      "255.224.0.0",
+      "255.192.0.0",
+      "255.128.0.0",
+      "255.0.0.0"
+    ];
+    return validMasks.includes(mask);
+  }
+  /**
+   * Extracts the IP address and subnet mask from CIDR notation.
+   * @param {string} cidr - The CIDR notation (e.g., "192.168.0.1/24").
+   * @returns {{ ip: string, mask: string } | null} - The extracted IP and subnet mask, or null if invalid.
+   */
+  static extractFromCIDR(cidr) {
+    const cidrRegex = /^([\d\.]+)\/(\d{1,2})$/;
+    const match = cidr.match(cidrRegex);
+    if (!match || !this.validateIPv4Address(match[1]) || parseInt(match[2]) > 32) return null;
+    const ip = match[1];
+    const prefixLength = parseInt(match[2]);
+    const maskBinary = "1".repeat(prefixLength).padEnd(32, "0");
+    const mask = maskBinary.match(/.{8}/g)?.map((bin) => parseInt(bin, 2)).join(".") || "";
+    return { ip, mask };
+  }
+  /**
+  * Calculates the network address for a given IP and subnet mask.
+  * @param {string} ip - The IP address.
+  * @param {string} mask - The subnet mask.
+  * @returns {string|null} - The calculated network address, or null if inputs are invalid.
+  */
+  static calculateNetworkAddress(ip, mask) {
+    if (!this.validateIPv4Address(ip) || !this.isValidSubnetMask(mask)) return null;
+    const ipSegments = ip.split(".").map(Number);
+    const maskSegments = mask.split(".").map(Number);
+    const networkAddress = ipSegments.map((segment, i) => segment & maskSegments[i]);
+    return networkAddress.join(".");
+  }
+  /**
+   * Checks if two IP addresses are in the same network.
+   * @param {string} ip1 - The first IP address.
+   * @param {string} ip2 - The second IP address.
+   * @param {string} mask - The subnet mask to check with.
+   * @returns {boolean} - True if both IPs are in the same network, false otherwise.
+   */
+  static areIPsInSameNetwork(ip1, ip2, mask) {
+    const network1 = this.calculateNetworkAddress(ip1, mask);
+    const network2 = this.calculateNetworkAddress(ip2, mask);
+    return network1 === network2;
   }
 };
 
@@ -5108,7 +5243,6 @@ var Butility = {
   FormAction,
   SerializeForm,
   File,
-  QRCode,
   Blob: Blob2,
   Image: Image2,
   Capture,
@@ -5116,7 +5250,6 @@ var Butility = {
   IP,
   RequestServer,
   URLClass,
-  WebWorker,
   DetectDevice,
   DetectFeature,
   EnvInfo,
@@ -5155,10 +5288,9 @@ export {
   URLClass,
   Utility,
   Validate,
-  WebWorker,
   src_default as default
 };
 /**
  * @author - Ermiyas Arage
- * @license Apache-2.0
+ * @license MIT
  */
