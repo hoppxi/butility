@@ -4,7 +4,7 @@
  * @license MIT
  */
 
-import { Utility } from "../main/utility.js";
+import { Element } from "../element/element.js";
 import { Style } from "../styling/style.js";
 
 /**
@@ -19,9 +19,14 @@ export class Modal {
      * @returns {HTMLElement} - The created modal element.
      */
     static createModal(options) {
-        const modal = document.createElement('div');
-        modal.id = options.id || 'modal';
-        Utility.addClass(modal, options.class || 'modal');
+        const modal = Element.createElement({
+            name: "div",
+            attr: {
+                id: options.is || 'modal',
+                class: options.class || 'modal'
+            }
+        });
+       
         return modal;
     }
 
@@ -57,7 +62,7 @@ export class Modal {
     static destroyModal(modalId) {
         const modal = document.getElementById(modalId);
         if (modal) {
-            modal.remove();
+            Element.removeElement(modal);
         }
     }
 
@@ -70,7 +75,7 @@ export class Modal {
     static setModalContent(modalId, content) {
         const modal = document.getElementById(modalId);
         if (modal) {
-            modal.innerHTML = content;
+            Element.setElementHTML(modal, content)
         }
     }
 
@@ -82,7 +87,7 @@ export class Modal {
      */
     static getModalContent(modalId) {
         const modal = document.getElementById(modalId);
-        return modal ? modal.innerHTML : '';
+        return modal ? Element.getElementHTML(modal) : '';
     }
 
 }

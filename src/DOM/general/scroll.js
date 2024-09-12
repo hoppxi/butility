@@ -21,7 +21,7 @@ export class Scroll {
     static fadeIn(element, duration, callback) {
         const startOpacity = 0;
         const endOpacity = 1;
-        Scroll.animateOpacity(element, startOpacity, endOpacity, duration, callback);
+        this.animateOpacity(element, startOpacity, endOpacity, duration, callback);
     }
 
     /**
@@ -33,7 +33,7 @@ export class Scroll {
     static fadeOut(element, duration, callback) {
         const startOpacity = 1;
         const endOpacity = 0;
-        Scroll.animateOpacity(element, startOpacity, endOpacity, duration, callback);
+        this.animateOpacity(element, startOpacity, endOpacity, duration, callback);
     }
 
     /**
@@ -43,7 +43,7 @@ export class Scroll {
      * @param {Function} [callback] - An optional callback function to execute after the slide-down is complete.
      */
     static slideDown(element, duration, callback) {
-        Scroll.animateHeight(element, 0, Scroll.getFullHeight(element), duration, callback);
+        this.animateHeight(element, 0, this.getFullHeight(element), duration, callback);
     }
 
     /**
@@ -53,7 +53,7 @@ export class Scroll {
      * @param {Function} [callback] - An optional callback function to execute after the slide-up is complete.
      */
     static slideUp(element, duration, callback) {
-        Scroll.animateHeight(element, Scroll.getFullHeight(element), 0, duration, callback);
+        this.animateHeight(element, this.getFullHeight(element), 0, duration, callback);
     }
 
     /**
@@ -63,10 +63,10 @@ export class Scroll {
      * @param {Function} [callback] - An optional callback function to execute after the toggle is complete.
      */
     static slideToggle(element, duration, callback) {
-        if (Scroll.isElementVisible(element)) {
-            Scroll.slideUp(element, duration, callback);
+        if (this.isElementVisible(element)) {
+            this.slideUp(element, duration, callback);
         } else {
-            Scroll.slideDown(element, duration, callback);
+            this.slideDown(element, duration, callback);
         }
     }
 
@@ -99,7 +99,7 @@ export class Scroll {
 
         const animateScroll = () => {
             currentTime += increment;
-            const val = Scroll.easeInOutQuad(currentTime, start, change, duration);
+            const val = this.easeInOutQuad(currentTime, start, change, duration);
             window.scrollTo(0, val);
             if (currentTime < duration) {
                 setTimeout(animateScroll, increment);
@@ -123,7 +123,7 @@ export class Scroll {
         const animate = (timestamp) => {
             const elapsed = timestamp - startTime;
             const progress = elapsed / duration;
-            const opacity = Scroll.easeInOutQuad(progress, startOpacity, endOpacity - startOpacity, 1);
+            const opacity = this.easeInOutQuad(progress, startOpacity, endOpacity - startOpacity, 1);
             Style.addStyles(element, {opacity: opacity.toString()});
             if (progress < 1) {
                 requestAnimationFrame(animate);
@@ -148,7 +148,7 @@ export class Scroll {
         const animate = (timestamp) => {
             const elapsed = timestamp - startTime;
             const progress = elapsed / duration;
-            const height = Scroll.easeInOutQuad(progress, startHeight, endHeight - startHeight, 1);
+            const height = this.easeInOutQuad(progress, startHeight, endHeight - startHeight, 1);
             Style.addStyles(element, {height: height + 'px'});
             
             if (progress < 1) {
@@ -220,7 +220,7 @@ export class Scroll {
 
         const animateScroll = () => {
             currentTime += increment;
-            const val = Scroll.easeInOutQuad(currentTime, start, change, duration);
+            const val = this.easeInOutQuad(currentTime, start, change, duration);
             window.scrollTo(0, val);
             if (currentTime < duration) {
                 setTimeout(animateScroll, increment);
@@ -237,7 +237,7 @@ export class Scroll {
      */
        static smoothScrollToElement(element, duration) {
         const elementTop = element.getBoundingClientRect().top + window.scrollY;
-        Scroll.smoothScrollToPosition(elementTop, duration);
+        this.smoothScrollToPosition(elementTop, duration);
     }
 
     /**
@@ -257,7 +257,7 @@ export class Scroll {
      * @param {number} duration - The duration of the smooth scroll in milliseconds.
      */
     static scrollToTop(duration) {
-        Scroll.smoothScrollToPosition(0, duration);
+        this.smoothScrollToPosition(0, duration);
     }
 
     /**
@@ -273,7 +273,7 @@ export class Scroll {
             document.documentElement.offsetHeight
         );
         const scrollPosition = documentHeight - window.innerHeight;
-        Scroll.smoothScrollToPosition(scrollPosition, duration);
+        this.smoothScrollToPosition(scrollPosition, duration);
     }
 
     /**

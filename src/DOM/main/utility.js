@@ -107,11 +107,11 @@ export class Utility {
      */
     static toggleClassConditionally(element, condition, trueClass, falseClass) {
         if (condition) {
-            Utility.addClass(element, trueClass);
-            Utility.removeClass(element, falseClass);
+            this.addClass(element, trueClass);
+            this.removeClass(element, falseClass);
         } else {
-            Utility.addClass(element, falseClass);
-            Utility.removeClass(element, trueClass);
+            this.addClass(element, falseClass);
+            this.removeClass(element, trueClass);
         }
     }
 
@@ -133,7 +133,7 @@ export class Utility {
      */
     static hasAnyClass(element, classArray) {
         for (const className of classArray) {
-            if (typeof className === 'string' && element.classList.contains(className)) {
+            if (typeof className === 'string' && this.hasClass(element, className)) {
                 return true;
             }
         }
@@ -150,8 +150,8 @@ export class Utility {
         const classNames = Array.from(element.classList);
         classNames.forEach(className => {
             if (className.startsWith(oldPrefix)) {
-                Utility.removeClass(className);
-                Utility.addClass(element, className.replace(oldPrefix, newPrefix));
+                this.removeClass(className);
+                this.addClass(element, className.replace(oldPrefix, newPrefix));
             }
         });
     }
@@ -162,8 +162,8 @@ export class Utility {
      * @param {string} className - The class name to add.
      */
     static addUniqueClass(element, className) {
-        if (!Utility.hasClass(element, className)) {
-            Utility.addClass(element, className)
+        if (!this.hasClass(element, className)) {
+            this.addClass(element, className)
         }
     }
 
@@ -176,7 +176,7 @@ export class Utility {
         const handleScroll = () => {
             const rect = this.element.getBoundingClientRect();
             if (rect.top >= 0 && rect.bottom <= window.innerHeight) {
-                Utility.addClass(element, className);
+                this.addClass(element, className);
                 window.removeEventListener('scroll', handleScroll);
             }
         };
@@ -191,12 +191,12 @@ export class Utility {
      * @param {string} className - The class name to add.
      */
     static toggleClassOnFocus(element, className) {
-        this.element.addEventListener('focus', () => {
-            Utility.addClass(element, className);
+        element.addEventListener('focus', () => {
+            this.addClass(element, className);
         });
 
-        this.element.addEventListener('blur', () => {
-            Utility.removeClass(element, className);
+        element.addEventListener('blur', () => {
+            this.removeClass(element, className);
         });
     }
 
@@ -210,7 +210,7 @@ export class Utility {
         const mediaQueryList = window.matchMedia(mediaQuery);
         const handleMediaQueryChange = (event) => {
             if (event.matches) {
-                Utility.toggleClass(element, className);
+                this.toggleClass(element, className);
             }
         };
 
@@ -225,7 +225,7 @@ export class Utility {
      */
     toggleClassOnCopy(element, className) {
         this.element.addEventListener('copy', () => {
-            Utility.toggleClass(element, className);
+            this.toggleClass(element, className);
         });
     }
 
@@ -240,7 +240,7 @@ export class Utility {
         const resetIdleTimer = () => {
             clearTimeout(idleTimer);
             idleTimer = setTimeout(() => {
-                Utility.toggleClass(element, className);
+                this.toggleClass(element, className);
             }, idleTime);
         };
 
@@ -255,7 +255,7 @@ export class Utility {
      */
     static addClassOnInterval(element, className, interval = 1000) {
         setInterval(() => {
-            Utility.addClass(element, className);
+            this.addClass(element, className);
         }, interval);
     }
 
@@ -265,7 +265,7 @@ export class Utility {
      */
     removeClassOnInterval(element, className, interval = 1000) {
         setInterval(() => {
-            Utility.removeClass(element, className);
+            this.removeClass(element, className);
         }, interval);
     }
 
@@ -278,7 +278,7 @@ export class Utility {
         window.addEventListener('deviceorientation', (event) => {
             const tiltThreshold = 20;
             const isTilted = Math.abs(event.beta) > tiltThreshold || Math.abs(event.gamma) > tiltThreshold;
-            Utility.toggleClass(element, className, isTilted);
+            this.toggleClass(element, className, isTilted);
         });
     }
 
@@ -290,7 +290,7 @@ export class Utility {
     static toggleClassOnOrientationChange(element, className) {
         const handleOrientationChange = () => {
             const orientation = window.matchMedia('(orientation: portrait)').matches ? 'portrait' : 'landscape';
-            Utility.toggleClass(element, `${className}-${orientation}`);
+            this.toggleClass(element, `${className}-${orientation}`);
         };
 
         window.addEventListener('orientationchange', handleOrientationChange);
@@ -316,10 +316,10 @@ export class Utility {
 
             if (Math.abs(deltaX) > Math.abs(deltaY)) {
                 // Horizontal Swipe
-                Utility.toggleClass(element, `${className}-horizontal`);
+                this.toggleClass(element, `${className}-horizontal`);
             } else {
                 // Vertical Swipe
-                Utility.toggleClass(element, `${className}-vertical`);
+                this.toggleClass(element, `${className}-vertical`);
             }
         });
     }
@@ -332,7 +332,7 @@ export class Utility {
     static toggleClassOnConnectionStatus(element, className) {
         const handleConnectionChange = () => {
             const isOnline = navigator.onLine;
-            Utility.toggleClass(element, className, isOnline);
+            this.toggleClass(element, className, isOnline);
         };
 
         window.addEventListener('online', handleConnectionChange);
@@ -348,7 +348,7 @@ export class Utility {
     static toggleClassOnGeolocationChange(element, className) {
         navigator.geolocation.watchPosition(
             (position) => {
-                Utility.toggleClass(element, className);
+                this.toggleClass(element, className);
             },
             (error) => {
                 console.error(error);

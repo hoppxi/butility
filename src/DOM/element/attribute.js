@@ -82,10 +82,10 @@ export class Attribute {
      * @param {string} attributeName - The name of the attribute to toggle.
      */
     static toggleElementAttribute(element, attributeName) {
-        if (Attribute.hasElementAttribute(element, attributeName)) {
-            Attribute.removeElementAttribute(element, attributeName);
+        if (this.hasElementAttribute(element, attributeName)) {
+            this.removeElementAttribute(element, attributeName);
         } else {
-            Attribute.setElementAttribute(element, attributeName, '');
+            this.setElementAttribute(element, attributeName, '');
         }
     }
 
