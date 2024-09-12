@@ -2,6 +2,11 @@
 
 **Butility** is a handy JavaScript package designed to simplify common tasks in web apps. It’s packed with useful methods for dealing with the DOM, devices, media, networks, and forms. **Butility** is made for the browser, so it’s all about making your web development easier and more efficient.
 
+**Changes**: 
+- Removing WebWorker class
+- [Add more methods in the IP Class](https://github.com/ermi111/butility/wiki/api#ip-class)
+- Using `this` to access c class' methods
+
 ## Installation
 
 Just add Butility to your project:
@@ -65,7 +70,7 @@ and in html:
 
 ```html
 <!-- Use standard version -->
-<script src="./butility.js"></script>
+<script src="./butility.js" type="module"></script>
 <script>
     import { Utility } from "./butility.js"
     const button = document.querySelector('button');
