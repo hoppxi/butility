@@ -25,7 +25,6 @@ import {Blob} from "./media/file/blob.js";
 import {URLClass} from "./network/URL/url.js";
 import {RequestServer} from "./network/request/server.js";
 import {IP} from "./network/ip/ip.js";
-import {WebWorker} from "./network/web-worker/webWorker.js";
 // device modules
 import {DetectFeature} from "./device/detection/features.js";
 import {DetectDevice} from "./device/detection/device.js";
@@ -36,8 +35,8 @@ import {DeviceStorage} from "./device/storage/device-storage.js";
 const Butility = {
     Element, Attribute, Obj, String, Scroll, Utility, Ripple, RippleEffect, DragDrop, Style, Color, Modal, Tooltip,
     Validate, CreditCard, FormAction, SerializeForm,
-    File, QRCode, Blob, Image, Capture, FullScreen,
-    IP, RequestServer, URLClass, WebWorker,
+    File, Blob, Image, Capture, FullScreen,
+    IP, RequestServer, URLClass,
     DetectDevice, DetectFeature, EnvInfo, DeviceStorage, BrowserStorage,
 };
 
@@ -45,6 +44,6 @@ export default Butility;
 export { Element, Attribute, Obj, String, Scroll, Utility, Ripple, RippleEffect, DragDrop, Style, Color, Modal, Tooltip };
 export { Validate, CreditCard, FormAction, SerializeForm };
 export { File, Blob, Image, Capture, FullScreen };
-export { IP, RequestServer, URLClass, WebWorker };
+export { IP, RequestServer, URLClass };
 export { DetectDevice, DetectFeature, EnvInfo, DeviceStorage, BrowserStorage };
 
