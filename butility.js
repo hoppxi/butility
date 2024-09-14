@@ -1,10 +1,3 @@
-var __require = /* @__PURE__ */ ((x) => typeof require !== "undefined" ? require : typeof Proxy !== "undefined" ? new Proxy(x, {
-  get: (a, b) => (typeof require !== "undefined" ? require : a)[b]
-}) : x)(function(x) {
-  if (typeof require !== "undefined") return require.apply(this, arguments);
-  throw Error('Dynamic require of "' + x + '" is not supported');
-});
-
 // src/DOM/element/element.js
 var Element = class {
   /**
@@ -3635,8 +3628,17 @@ var IP = class {
   static normalizeIPv6(ip) {
     if (!this.validateIPv6Address(ip)) return null;
     try {
-      const normalized = __require("ip").toLong(ip);
-      return normalized;
+      const segments = ip.split(":");
+      let fullSegments = [];
+      segments.forEach((segment) => {
+        if (segment === "") {
+          const fillLength = 8 - segments.filter((s) => s !== "").length;
+          fullSegments.push(...Array(fillLength).fill("0000"));
+        } else {
+          fullSegments.push(segment.padStart(4, "0"));
+        }
+      });
+      return fullSegments.join(":");
     } catch (e) {
       console.error("Error normalizing IPv6:", e);
       return null;
@@ -3674,12 +3676,19 @@ var IP = class {
   * @param {Request} req - The incoming HTTP request object.
   * @returns {string|null} - The IP address of the user, or null if not found.
   */
-  static getUserIPAddress(req) {
-    const ip = req.headers["x-forwarded-for"] || req.connection.remoteAddress || req.socket.remoteAddress || null;
-    if (ip && this.validateIPv4Address(ip)) {
-      return ip;
+  static async getUserIPAddress(req) {
+    try {
+      const response = await fetch("https://api.ipify.org?format=json");
+      const data = await response.json();
+      const ip = data.ip;
+      if (ip && this.validateIPv4Address(ip)) {
+        return ip;
+      }
+      return null;
+    } catch (e) {
+      console.error("Error fetching IP address:", e);
+      return null;
     }
-    return null;
   }
   /**
    * Generates a random valid IPv4 address.
@@ -3771,6 +3780,29 @@ var IP = class {
     const network1 = this.calculateNetworkAddress(ip1, mask);
     const network2 = this.calculateNetworkAddress(ip2, mask);
     return network1 === network2;
+  }
+  /**
+   * Get the location information based on IP address asynchronously using ipinfo.io.
+   * @param {string} ip - The IP address.
+   * @param {Function} callback - The callback function to receive the location information.
+   */
+  static getLocationByIP(ip, callback2) {
+    const apiUrl = `https://ipinfo.io/${ip}/json`;
+    fetch(apiUrl).then((response) => {
+      if (!response.ok) {
+        throw new Error("Failed to fetch geolocation information");
+      }
+      return response.json();
+    }).then((data) => {
+      const location = {
+        latitude: parseFloat(data.loc.split(",")[0]),
+        longitude: parseFloat(data.loc.split(",")[1])
+      };
+      callback2(location);
+    }).catch((error) => {
+      console.error("Error fetching geolocation information:", error);
+      callback2(null);
+    });
   }
 };
 
@@ -4955,29 +4987,6 @@ var EnvInfo = class {
     }
   }
   /**
-   * Get the location information based on IP address asynchronously using ipinfo.io.
-   * @param {string} ip - The IP address.
-   * @param {Function} callback - The callback function to receive the location information.
-   */
-  static getLocationByIP(ip, callback2) {
-    const apiUrl = `https://ipinfo.io/${ip}/json`;
-    fetch(apiUrl).then((response) => {
-      if (!response.ok) {
-        throw new Error("Failed to fetch geolocation information");
-      }
-      return response.json();
-    }).then((data) => {
-      const location = {
-        latitude: parseFloat(data.loc.split(",")[0]),
-        longitude: parseFloat(data.loc.split(",")[1])
-      };
-      callback2(location);
-    }).catch((error) => {
-      console.error("Error fetching geolocation information:", error);
-      callback2(null);
-    });
-  }
-  /**
    * Get the geolocation asynchronously.
    * @param {Function} callback - The callback function to receive the geolocation.
    */
@@ -5256,7 +5265,7 @@ var Butility = {
   DeviceStorage,
   BrowserStorage
 };
-const src_default = Butility;
+var src_default = Butility;
 export {
   Attribute,
   Blob2 as Blob,

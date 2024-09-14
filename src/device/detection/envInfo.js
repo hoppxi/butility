@@ -117,38 +117,6 @@ export class EnvInfo {
     }
 
     /**
-     * Get the location information based on IP address asynchronously using ipinfo.io.
-     * @param {string} ip - The IP address.
-     * @param {Function} callback - The callback function to receive the location information.
-     */
-    static getLocationByIP(ip, callback) {
-        // Replace {ip} with the actual IP address
-        const apiUrl = `https://ipinfo.io/${ip}/json`;
-
-        // Make an API request to ipinfo.io
-        fetch(apiUrl)
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error('Failed to fetch geolocation information');
-                }
-                return response.json();
-            })
-            .then(data => {
-                // Assuming the ipinfo.io response provides latitude and longitude information
-                const location = {
-                    latitude: parseFloat(data.loc.split(',')[0]),
-                    longitude: parseFloat(data.loc.split(',')[1])
-                };
-
-                callback(location);
-            })
-            .catch(error => {
-                console.error('Error fetching geolocation information:', error);
-                callback(null);
-            });
-    }
-
-    /**
      * Get the geolocation asynchronously.
      * @param {Function} callback - The callback function to receive the geolocation.
      */

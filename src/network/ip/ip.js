@@ -83,13 +83,26 @@ export class IP {
      * @param {string} ip - The IPv6 address to normalize.
      * @returns {string|null} - The normalized IPv6 address, or null if invalid.
      */
-    static normalizeIPv6(ip) {
+    static normalizeIPv6(ip) { // I put the node js code in try/catch block until i figure out how to do so in the browser
         if (!this.validateIPv6Address(ip)) return null;
-        
-        // Node.js built-in method to normalize IPv6
+    
+        // Expand shorthand IPv6 notations like "::" into full notation
         try {
-            const normalized = require('ip').toLong(ip);
-            return normalized;
+            const segments = ip.split(':');
+            let fullSegments = [];
+
+            segments.forEach(segment => {
+                if (segment === '') {
+                    // Empty segment corresponds to "::" shorthand, fill the gap with zeroes
+                    const fillLength = 8 - segments.filter(s => s !== '').length;
+                    fullSegments.push(...Array(fillLength).fill('0000'));
+                } else {
+                    // Pad each segment with leading zeros to ensure 4 characters
+                    fullSegments.push(segment.padStart(4, '0'));
+                }
+            });
+
+            return fullSegments.join(':');
         } catch (e) {
             console.error("Error normalizing IPv6:", e);
             return null;
@@ -127,12 +140,24 @@ export class IP {
      * @param {Request} req - The incoming HTTP request object.
      * @returns {string|null} - The IP address of the user, or null if not found.
      */
-    static getUserIPAddress(req) {
-        const ip = req.headers['x-forwarded-for'] || req.connection.remoteAddress || req.socket.remoteAddress || null;
-        if (ip && this.validateIPv4Address(ip)) {
-            return ip;
+    static async getUserIPAddress(req) { // I put the node js code with common js syntax until i figure out how to do so in the browser
+        try {
+            // To get the user's IP address in a browser environment, 
+            // it is impossible to directly access low-level network details like in Node.js, 
+            // as browsers don't expose this information for security reasons.
+            // Instead, we need to use an external API (ipify) to get the public IP address. 
+            const response = await fetch('https://api.ipify.org?format=json');
+            const data = await response.json();
+            const ip = data.ip;
+
+            if (ip && this.validateIPv4Address(ip)) {
+                return ip;
+            }
+            return null;
+        } catch (e) {
+            console.error("Error fetching IP address:", e);
+            return null;
         }
-        return null;
     }
 
     /**
@@ -222,5 +247,36 @@ export class IP {
         const network1 = this.calculateNetworkAddress(ip1, mask);
         const network2 = this.calculateNetworkAddress(ip2, mask);
         return network1 === network2;
+    }
+
+    /**
+     * Get the location information based on IP address asynchronously using ipinfo.io.
+     * @param {string} ip - The IP address.
+     * @param {Function} callback - The callback function to receive the location information.
+     */
+    static getLocationByIP(ip, callback) {
+        const apiUrl = `https://ipinfo.io/${ip}/json`;
+
+        // Make an API request to ipinfo.io
+        // And Unless the IP address is bogon, ipinfo returns an object with loc property that can be splited to latt and long
+        fetch(apiUrl)
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Failed to fetch geolocation information');
+                }
+                return response.json();
+            })
+            .then(data => {
+                const location = {
+                    latitude: parseFloat(data.loc.split(',')[0]),
+                    longitude: parseFloat(data.loc.split(',')[1])
+                };
+
+                callback(location);
+            })
+            .catch(error => {
+                console.error('Error fetching geolocation information:', error);
+                callback(null);
+            });
     }
 }
