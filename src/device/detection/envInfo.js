@@ -38,7 +38,7 @@ export class EnvInfo {
      * @param {Function} callback - The callback function to receive the battery status.
      */
     static getBatteryStatus(callback) {
-        if (DetectFeature.detectBatteryAPI()) {
+        if ('navigator' in window && 'getBattery' in navigator) {
             navigator.getBattery().then((battery) => {
                 callback({
                     level: battery.level,
@@ -121,7 +121,7 @@ export class EnvInfo {
      * @param {Function} callback - The callback function to receive the geolocation.
      */
     static getGeolocation(callback) {
-        if (DetectFeature.detectGeolocationAPI()) {
+        if ('geolocation' in navigator) {
             navigator.geolocation.getCurrentPosition((position) => {
                 callback({
                     latitude: position.coords.latitude,
