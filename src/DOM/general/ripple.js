@@ -20,7 +20,24 @@ export class Ripple {
 	 * @param {string} [options.color='rgba(255, 255, 255, 0.5)'] - The color of the ripple effect in CSS color format.
 	 * @param {string} [options.duration='0.6s'] - The duration of the ripple effect animation in CSS time format.
 	 * @param {number} [options.size=4] - The size of the ripple effect relative to the element's dimensions.
-	 */
+     * 
+     * 
+     * Ripple effect css,
+     * Add this to your existing CSS file or create a new one
+     * 	.ripple {
+     * 		position: absolute;
+     * 		border-radius: 50%;
+     * 		transform: scale(0);
+     * 		animation: rippleEffect 0.6s linear;
+     * 	}
+     *
+     * 	@keyframes rippleEffect {
+     * 		to {
+     * 			transform: scale(4);
+     * 			opacity: 0;
+     * 		}
+     * 	}
+     */
 	static addRippleEffect(element, options = {}) {
 		const defaultOptions = {
 			color: 'rgba(255, 255, 255, 0.5)',
@@ -44,24 +61,6 @@ export class Ripple {
 				backgroundColor: mergedOptions.color,
 				animationDuration: mergedOptions.duration,
 			});
-
-			/**
-			 * Ripple effect css,
-			 * Add this to your existing CSS file or create a new one
-			 * 	.ripple {
-			 * 		position: absolute;
-			 * 		border-radius: 50%;
-			 * 		transform: scale(0);
-			 * 		animation: rippleEffect 0.6s linear;
-			 * 	}
-			 *
-			 * 	@keyframes rippleEffect {
-			 * 		to {
-			 * 			transform: scale(4);
-			 * 			opacity: 0;
-			 * 		}
-			 * 	}
-			 */
 
 			// Position the ripple in the container
 			const rect = targetElement.getBoundingClientRect();

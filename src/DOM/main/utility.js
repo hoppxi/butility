@@ -11,69 +11,192 @@
  */
 export class Utility {
     /**
-     * Adds a CSS class to an HTML element.
+     * Adds a CSS class to an HTML element with error handling and optional animation trigger.
      * @param {HTMLElement} element - The HTML element.
      * @param {string} className - The name of the CSS class to add.
+     * @param {Object} [options] - Additional options.
+     * @param {boolean} [options.checkIfExists=false] - Whether to check if the class already exists before adding.
+     * @param {boolean} [options.triggerAnimation=false] - Whether to trigger an animation after the class is added.
+     * @throws Will throw an error if the element or className is invalid.
      */
-    static addClass(element, className) {
+    static addClass(element, className, options = {}) {
+        if (!(element instanceof HTMLElement)) {
+            throw new Error("Invalid element provided.");
+        }
+
+        if (typeof className !== 'string' || !className.trim()) {
+            throw new Error("Invalid className provided.");
+        }
+
+        const { checkIfExists = false, triggerAnimation = false } = options;
+
+        if (checkIfExists && element.classList.contains(className)) {
+            console.warn(`Class "${className}" already exists on the element.`);
+            return;
+        }
+
         element.classList.add(className);
+
+        if (triggerAnimation) {
+            // Add an animation class, for example, fade-in
+            element.style.transition = 'opacity 0.5s';
+            element.style.opacity = 0;
+            setTimeout(() => {
+                element.style.opacity = 1;
+            }, 10);
+        }
     }
 
     /**
-     * Removes a CSS class from an HTML element.
+     * Removes a CSS class from an HTML element with advanced logging and state preservation.
      * @param {HTMLElement} element - The HTML element.
      * @param {string} className - The name of the CSS class to remove.
+     * @param {Object} [options] - Additional options.
+     * @param {boolean} [options.logChanges=false] - Whether to log the class removal.
+     * @param {boolean} [options.preserveState=false] - Whether to preserve a backup of the class list for undo functionality.
      */
-    static removeClass(element, className) {
+    static removeClass(element, className, options = {}) {
+        if (!(element instanceof HTMLElement)) {
+            throw new Error("Invalid element provided.");
+        }
+
+        if (typeof className !== 'string' || !className.trim()) {
+            throw new Error("Invalid className provided.");
+        }
+
+        const { logChanges = false, preserveState = false } = options;
+
+        if (preserveState) {
+            element.dataset.previousClassList = element.className;
+        }
+
         element.classList.remove(className);
+
+        if (logChanges) {
+            console.log(`Class "${className}" removed from element.`);
+        }
     }
 
     /**
-     * Checks if an HTML element has a specific CSS class.
+     * Checks if an HTML element has a specific CSS class and includes async delay options.
      * @param {HTMLElement} element - The HTML element.
      * @param {string} className - The name of the CSS class to check.
-     * @returns {boolean} True if the element has the class, false otherwise.
+     * @param {Object} [options] - Additional options.
+     * @param {number} [options.delay=0] - Optional delay before checking the class, useful in animations.
+     * @returns {Promise<boolean>} True if the element has the class, false otherwise.
      */
-    static hasClass(element, className) {
+    static async hasClass(element, className, options = {}) {
+        if (!(element instanceof HTMLElement)) {
+            throw new Error("Invalid element provided.");
+        }
+
+        if (typeof className !== 'string' || !className.trim()) {
+            throw new Error("Invalid className provided.");
+        }
+
+        const { delay = 0 } = options;
+
+        if (delay > 0) {
+            await new Promise(resolve => setTimeout(resolve, delay));
+        }
+
         return element.classList.contains(className);
     }
 
     /**
-     * Toggles a CSS class on an HTML element. If the class is present, it is removed; otherwise, it is added.
+     * Toggles a CSS class on an HTML element with conditional behavior and callbacks.
      * @param {HTMLElement} element - The HTML element.
      * @param {string} className - The name of the CSS class to toggle.
+     * @param {Object} [options] - Additional options.
+     * @param {Function} [options.onAdd] - Callback function when the class is added.
+     * @param {Function} [options.onRemove] - Callback function when the class is removed.
      */
-    static toggleClass(element, className) {
-        element.classList.toggle(className);
+    static toggleClass(element, className, options = {}) {
+        if (!(element instanceof HTMLElement)) {
+            throw new Error("Invalid element provided.");
+        }
+
+        if (typeof className !== 'string' || !className.trim()) {
+            throw new Error("Invalid className provided.");
+        }
+
+        const { onAdd, onRemove } = options;
+
+        if (element.classList.toggle(className)) {
+            if (typeof onAdd === 'function') {
+                onAdd(element);
+            }
+        } else {
+            if (typeof onRemove === 'function') {
+                onRemove(element);
+            }
+        }
     }
 
     /**
-     * Replaces one CSS class with another on an HTML element.
+     * Replaces one CSS class with another on an HTML element, with undo capability.
      * @param {HTMLElement} element - The HTML element.
      * @param {string} oldClass - The class to be replaced.
      * @param {string} newClass - The class to replace it with.
+     * @param {Object} [options] - Additional options.
+     * @param {boolean} [options.enableUndo=false] - Whether to enable undo functionality.
+     * @returns {Function|null} An undo function if undo is enabled, otherwise null.
      */
-    static replaceClass(element, oldClass, newClass) {
+    static replaceClass(element, oldClass, newClass, options = {}) {
+        if (!(element instanceof HTMLElement)) {
+            throw new Error("Invalid element provided.");
+        }
+
+        if (typeof oldClass !== 'string' || !oldClass.trim() || typeof newClass !== 'string' || !newClass.trim()) {
+            throw new Error("Invalid class names provided.");
+        }
+
+        const { enableUndo = false } = options;
+
         this.removeClass(element, oldClass);
         this.addClass(element, newClass);
+
+        if (enableUndo) {
+            const undo = () => {
+                this.removeClass(element, newClass);
+                this.addClass(element, oldClass);
+                console.log(`Undo: Class "${newClass}" replaced back with "${oldClass}".`);
+            };
+            return undo;
+        }
+
+        return null;
     }
 
     /**
-     * Adds multiple CSS classes to an HTML element.
+     * Adds multiple CSS classes to an HTML element, with an optional timeout before applying the classes.
      * @param {HTMLElement} element - The HTML element.
-     * @param {...string} classNames - The names of the CSS classes to add.
+     * @param {Array<string>} classNames - The names of the CSS classes to add.
+     * @param {Object} [options] - Additional options.
+     * @param {number} [options.timeout=0] - Optional delay before applying the classes.
+     * @param {boolean} [options.checkForDuplicates=false] - Check for duplicate classes before adding.
+     * @returns {Promise<void>} A promise that resolves when all classes are added.
      */
-    static addClasses(element, ...classNames) {
-        element.classList.add(...classNames);
-    }
+    static async addClasses(element, classNames, options = {}) {
+        if (!(element instanceof HTMLElement)) {
+            throw new Error("Invalid element provided.");
+        }
 
-    /**
-     * Removes multiple CSS classes from an HTML element.
-     * @param {HTMLElement} element - The HTML element.
-     * @param {...string} classNames - The names of the CSS classes to remove.
-     */
-    static removeClasses(element, ...classNames) {
-        element.classList.remove(...classNames);
+        if (!Array.isArray(classNames) || classNames.some(name => typeof name !== 'string' || !name.trim())) {
+            throw new Error("Invalid classNames provided.");
+        }
+
+        const { timeout = 0, checkForDuplicates = false } = options;
+
+        if (timeout > 0) {
+            await new Promise(resolve => setTimeout(resolve, timeout));
+        }
+
+        classNames.forEach(className => {
+            if (!checkForDuplicates || !element.classList.contains(className)) {
+                element.classList.add(className);
+            }
+        });
     }
 
     /**
@@ -87,14 +210,6 @@ export class Utility {
                 this.replaceClass(element, oldClass, classMap[oldClass]);
             }
         }
-    }
-
-    /**
-     * Removes all CSS classes from an HTML element.
-     * @param {HTMLElement} element - The HTML element.
-     */
-    static removeAllClasses(element) {
-        element.className = '';
     }
 
     /**
@@ -113,16 +228,6 @@ export class Utility {
             this.addClass(element, falseClass);
             this.removeClass(element, trueClass);
         }
-    }
-
-
-    /**
-     * Retrieves an array of all CSS classes on an HTML element.
-     * @param {HTMLElement} element - The HTML element.
-     * @returns {string[]} An array of CSS class names.
-     */
-    static getAllClasses(element) {
-        return Array.from(element.classList);
     }
 
     /**
@@ -341,18 +446,74 @@ export class Utility {
     }
     
     /**
-     * Toggles a class when the geolocation changes.
-     * @param {HTMLElement} element - The target element.
-     * @param {string} className - The class name to toggle.
+     * Toggles a CSS class on an HTML element based on changes in the user's geolocation.
+     * Adds advanced error handling, throttling, and custom callback support.
+     * @param {HTMLElement} element - The HTML element.
+     * @param {string} className - The CSS class to toggle.
+     * @param {Object} [options] - Optional settings for geolocation.
+     * @param {boolean} [options.enableThrottling=true] - Enables throttling to limit how often the class is toggled.
+     * @param {number} [options.throttleInterval=5000] - Throttle interval in milliseconds (default is 5 seconds).
+     * @param {Function} [options.onClassToggle] - Optional callback that triggers whenever the class is toggled.
+     * @param {Function} [options.onError] - Optional error handling callback for geolocation errors.
+     * @param {Object} [options.geoOptions] - Custom geolocation API options (e.g., enableHighAccuracy, timeout, maximumAge).
      */
-    static toggleClassOnGeolocationChange(element, className) {
-        navigator.geolocation.watchPosition(
-            (position) => {
-                this.toggleClass(element, className);
-            },
-            (error) => {
-                console.error(error);
+    static toggleClassOnGeolocationChange(element, className, options = {}) {
+        if (!(element instanceof HTMLElement)) {
+            throw new Error("Invalid element provided.");
+        }
+
+        if (typeof className !== 'string' || !className.trim()) {
+            throw new Error("Invalid className provided.");
+        }
+
+        const {
+            enableThrottling = true,
+            throttleInterval = 5000,
+            onClassToggle = null,
+            onError = null,
+            geoOptions = { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+        } = options;
+
+        let lastToggleTime = 0;
+        let classToggled = false;
+
+        const toggleClassWithConditions = (position) => {
+            const currentTime = Date.now();
+
+            // Throttling logic to avoid excessive toggling
+            if (enableThrottling && currentTime - lastToggleTime < throttleInterval) {
+                console.log("Throttling geolocation updates, skipping toggle.");
+                return;
             }
+
+            this.toggleClass(element, className);
+            if (typeof onClassToggle === 'function') {
+                onClassToggle(position, classToggled);
+            }
+            classToggled = !classToggled;
+            lastToggleTime = currentTime;
+        };
+
+        const handleGeolocationError = (error) => {
+            console.error("Geolocation error occurred:", error.message);
+
+            if (typeof onError === 'function') {
+                onError(error);
+            }
+        };
+
+        const geoWatchId = navigator.geolocation.watchPosition(
+            toggleClassWithConditions,
+            handleGeolocationError,
+            geoOptions
         );
+
+        console.log("Started watching geolocation changes with ID:", geoWatchId);
+
+        return () => {
+            navigator.geolocation.clearWatch(geoWatchId);
+            console.log("Stopped watching geolocation changes.");
+        };
     }
+
 }

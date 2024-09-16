@@ -62,7 +62,7 @@ export class Modal {
     static destroyModal(modalId) {
         const modal = document.getElementById(modalId);
         if (modal) {
-            Element.removeElement(modal);
+            modal.remove();
         }
     }
 
@@ -75,7 +75,7 @@ export class Modal {
     static setModalContent(modalId, content) {
         const modal = document.getElementById(modalId);
         if (modal) {
-            Element.setElementHTML(modal, content)
+            Element.setHTML(modal, content)
         }
     }
 
@@ -87,7 +87,7 @@ export class Modal {
      */
     static getModalContent(modalId) {
         const modal = document.getElementById(modalId);
-        return modal ? Element.getElementHTML(modal) : '';
+        return modal ? Element.getHTML(modal) : '';
     }
 
 }

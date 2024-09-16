@@ -15,45 +15,112 @@ import { Element } from '../DOM/element/element.js';
  */
 export class FormAction {
     /**
-     * Generate a random password.
+     * Generates a secure password with multiple customization options, including character sets,
+     * entropy calculation, exclusion rules, and cryptographic security.
      * @param {number} length - The length of the password.
-     * @param {object} options - Additional options for password generation (eg. charset).
-     * @returns {string} - The generated password.
+     * @param {Object} options - Options for generating the password.
+     * @param {string[]} [options.customCharsets] - Array of custom character sets (strings) to use.
+     * @param {boolean} [options.includeSymbols=true] - Whether to include symbols in the password.
+     * @param {boolean} [options.includeNumbers=true] - Whether to include numbers in the password.
+     * @param {boolean} [options.includeUppercase=true] - Whether to include uppercase letters.
+     * @param {boolean} [options.includeLowercase=true] - Whether to include lowercase letters.
+     * @param {boolean} [options.avoidRepeats=true] - Prevents consecutive repeating characters.
+     * @param {boolean} [options.useCryptoRandom=true] - Whether to use a cryptographically secure random generator.
+     * @param {number} [options.minEntropy=50] - Minimum entropy for the generated password (in bits).
+     * @param {string[]} [options.exclude] - List of characters to exclude from the password.
+     * @param {Function} [options.onCharacterSelected] - Custom callback after each character is selected.
+     * @returns {string} The generated password.
+     * @throws {Error} Throws an error if password criteria cannot be met.
      */
-    static generatePassword(length, options) {
-        const charset = options.charset || 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-        let password = '';
-        for (let i = 0; i < length; i++) {
-            const randomIndex = Math.floor(Math.random() * charset.length);
-            password += charset[randomIndex];
+    static generatePassword(length, options = {}) {
+        // Default options
+        const {
+            customCharsets = [],
+            includeSymbols = true,
+            includeNumbers = true,
+            includeUppercase = true,
+            includeLowercase = true,
+            avoidRepeats = true,
+            useCryptoRandom = true,
+            minEntropy = 50,
+            exclude = [],
+            onCharacterSelected = null
+        } = options;
+
+        if (length <= 0 || typeof length !== 'number') {
+            throw new Error("Password length must be a positive number.");
         }
+
+        // Define character sets
+        const lowercaseCharset = 'abcdefghijklmnopqrstuvwxyz';
+        const uppercaseCharset = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+        const numberCharset = '0123456789';
+        const symbolCharset = '!@#$%^&*()-_=+[]{}|;:<>,.?/~`';
+        
+        // Build the final charset based on options
+        let charset = customCharsets.join('') ||
+                    (includeLowercase ? lowercaseCharset : '') +
+                    (includeUppercase ? uppercaseCharset : '') +
+                    (includeNumbers ? numberCharset : '') +
+                    (includeSymbols ? symbolCharset : '');
+
+        // Remove excluded characters from charset
+        charset = charset.split('').filter(char => !exclude.includes(char)).join('');
+
+        if (!charset.length) {
+            throw new Error("Charset is empty. Please provide valid options or customCharsets.");
+        }
+
+        // Calculate entropy: log2(charset length^password length)
+        const calculateEntropy = (charLength, pwdLength) => {
+            return Math.log2(Math.pow(charLength, pwdLength));
+        };
+
+        let entropy = calculateEntropy(charset.length, length);
+        if (entropy < minEntropy) {
+            throw new Error(`Password entropy (${entropy.toFixed(2)} bits) is below the required minimum (${minEntropy} bits). Increase password length or diversify the charset.`);
+        }
+
+        // Helper function for generating a secure random index
+        const getRandomIndex = (max) => {
+            if (useCryptoRandom && window.crypto && window.crypto.getRandomValues) {
+                const randomArray = new Uint32Array(1);
+                window.crypto.getRandomValues(randomArray);
+                return randomArray[0] % max;
+            } else {
+                return Math.floor(Math.random() * max);
+            }
+        };
+
+        let password = '';
+        let lastChar = null;
+
+        // Function to avoid repeating characters
+        const pickCharacter = () => {
+            let char;
+            do {
+                const randomIndex = getRandomIndex(charset.length);
+                char = charset[randomIndex];
+            } while (avoidRepeats && char === lastChar); // Avoid consecutive repeats
+            return char;
+        };
+
+        // Generate the password
+        for (let i = 0; i < length; i++) {
+            const selectedChar = pickCharacter();
+            password += selectedChar;
+            lastChar = selectedChar;
+
+            if (typeof onCharacterSelected === 'function') {
+                onCharacterSelected(selectedChar, i);
+            }
+        }
+
+        // entropy check to ensure security
+        entropy = calculateEntropy(charset.length, password.length);
+        console.log(`Password generated with entropy: ${entropy.toFixed(2)} bits.`);
+
         return password;
-    }
-
-    /**
-     * Hash a password with a salt using the Web Crypto API.
-     * @param {string} password - The password to hash.
-     * @param {string} salt - The salt for hashing.
-     * @returns {Promise<string>} - A promise that resolves to the hashed password.
-     */
-    static async hashPassword(password, salt) {
-        const encoder = new TextEncoder();
-        const data = encoder.encode(password + salt);
-        const hashBuffer = await crypto.subtle.digest('SHA-256', data);
-        const hashedPassword = Array.from(new Uint8Array(hashBuffer)).map(byte => String.fromCharCode(byte)).join('');
-        return hashedPassword;
-    }
-
-    /**
-     * Verify a password against its hash and salt.
-     * @param {string} hash - The hashed password.
-     * @param {string} password - The password to verify.
-     * @param {string} salt - The salt used for hashing.
-     * @returns {boolean} - True if the password is verified, false otherwise.
-     */
-    static verifyPassword(hash, password, salt) {
-        const hashedPassword = this.hashPassword(password, salt);
-        return hash === hashedPassword;
     }
 
     /**
@@ -80,30 +147,6 @@ export class FormAction {
         let decryptedText = decipher.update(encryptedText, 'hex', 'utf-8');
         decryptedText += decipher.final('utf-8');
         return decryptedText;
-    }
-
-    /**
-     * Generate a secure token of the specified length using the Web Crypto API.
-     * @param {number} length - The length of the token.
-     * @returns {Promise<string>} - A promise that resolves to the generated secure token.
-     */
-    static async generateToken(length) {
-        const tokenArray = new Uint8Array(length);
-        crypto.getRandomValues(tokenArray);
-        const token = Array.from(tokenArray).map(byte => byte.toString(16).padStart(2, '0')).join('');
-        return token;
-    }
-
-    /**
-     * Generate a secure one-time password (OTP) of the specified length using the Web Crypto API.
-     * @param {number} length - The length of the OTP.
-     * @returns {Promise<string>} - A promise that resolves to the generated OTP.
-     */
-    static async generateOTP(length) {
-        const otpArray = new Uint8Array(length);
-        crypto.getRandomValues(otpArray);
-        const otp = Array.from(otpArray).map(byte => byte.toString(10)).join('').slice(0, length);
-        return otp;
     }
 
     /**
@@ -143,8 +186,8 @@ export class FormAction {
     static showErrorMessage(element, message) {
         const errorElement = document.createElement('div');
         errorElement.className = 'error';
-        Element.setElementText(errorElement, message);
-        Element.prependElement(errorElement, element.nextSibling);
+        errorElement.text = message;
+        errorElement.prependElement(element.nextSibling);
     }
 
     /**

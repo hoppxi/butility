@@ -193,10 +193,8 @@ export class RequestServer {
         xhr.onreadystatechange = function () {
             if (xhr.readyState === XMLHttpRequest.DONE) {
                 if (xhr.status === 200) {
-                    // Successful response, invoke the callback with the parsed response
                     callback(JSON.parse(xhr.responseText));
                 } else {
-                    // Error response, invoke the callback with null
                     callback(null);
                 }
             }
@@ -213,19 +211,11 @@ export class RequestServer {
     static jsonp(url, callback) {
         const script = document.createElement('script');
         script.src = url;
-
-        // Attach the script to the document to initiate the JSONP request
         document.head.appendChild(script);
 
-        // Define the callback function in the global scope
         window.jsonpCallback = function (data) {
-            // Invoke the provided callback with the received data
             callback(data);
-
-            // Remove the script element after the callback
             document.head.removeChild(script);
-
-            // Clean up the global callback function
             delete window.jsonpCallback;
         };
     }

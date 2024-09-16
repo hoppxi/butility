@@ -11,14 +11,6 @@ import { RequestServer } from '../../network/request/server.js';
  * @class
  */
 export class File {
-    /**
-     * Gets the MIME type of a file.
-     * @param {File} file - The file to get the MIME type for.
-     * @returns {string} - The MIME type of the file.
-     */
-    static getMimeType(file) {
-        return file.type;
-    }
 
     /**
      * Validates whether the file has an allowed file type.
@@ -259,8 +251,5 @@ export class File {
         link.click();
 
         return zipBlob;
-    }
-
-
-    
+    }    
 }

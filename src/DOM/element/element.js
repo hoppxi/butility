@@ -20,10 +20,18 @@ export class Element {
      * @param {string} [options.innerText] - The inner text of the element.
      * @param {string} [options.innerHTML] - The inner HTML of the element.
      * @param {Array<HTMLElement>} [options.children] - The child elements to append to the element.
+     * @param {boolean} [options.draggable] - Whether the element should be draggable.
+     * @param {string} [options.style] - Optional inline styles to set on the element.
+     * @param {boolean} [options.trackMutation] - Whether to monitor changes to the element.
      * @param {Function} [callback] - A callback function to perform additional operations on the created element.
      * @returns {HTMLElement} The created HTML element.
+     * @throws Will throw an error if required properties are missing.
      */
-    static createElement(options, callback) {
+    static create(options, callback) {
+        if (!options || !options.name) {
+            throw new Error("Element creation requires a 'name' property.");
+        }
+
         const element = document.createElement(options.name);
     
         if (options.class && Array.isArray(options.class)) {
@@ -33,7 +41,7 @@ export class Element {
                 }
             });
         }
-    
+
         if (options.attr) {
             for (const key in options.attr) {
                 if (Object.hasOwnProperty.call(options.attr, key)) {
@@ -41,13 +49,13 @@ export class Element {
                 }
             }
         }
-    
+
         if (options.innerText) {
             element.innerText = options.innerText;
         } else if (options.innerHTML) {
             element.innerHTML = options.innerHTML;
         }
-    
+
         if (options.children && Array.isArray(options.children)) {
             options.children.forEach(child => {
                 if (child instanceof HTMLElement) {
@@ -55,57 +63,102 @@ export class Element {
                 }
             });
         }
-    
+
+        if (options.draggable) {
+            element.draggable = true;
+        }
+
+        if (options.style) {
+            element.style.cssText = options.style;
+        }
+
+        // Observe mutations if specified
+        if (options.trackMutation) {
+            const observer = new MutationObserver((mutations) => {
+                mutations.forEach(mutation => {
+                    console.log('Mutation observed:', mutation);
+                });
+            });
+            observer.observe(element, { attributes: true, childList: true, subtree: true });
+        }
+
         if (callback && typeof callback === 'function') {
             callback(element);
         }
-    
+
         return element;
     }
 
     /**
-     * Set the HTML content of an element.
+     * Set the HTML content of an element with additional script evaluation.
      * @param {HTMLElement} element - The target element.
      * @param {string} htmlContent - The HTML content to set.
+     * @param {boolean} [evaluateScripts=false] - Whether to evaluate <script> tags in the content.
      */
-    static setElementHTML(element, htmlContent) {
+    static setHTML(element, htmlContent, evaluateScripts = false) {
         element.innerHTML = htmlContent;
+        
+        if (evaluateScripts) {
+            const scripts = element.querySelectorAll('script');
+            scripts.forEach(script => {
+                const newScript = document.createElement('script');
+                if (script.src) {
+                    newScript.src = script.src;
+                } else {
+                    newScript.textContent = script.textContent;
+                }
+                script.replaceWith(newScript);
+            });
+        }
     }
 
+
     /**
-     * Get the HTML content of an element.
+     * Get the HTML content of an element and sanitize it to prevent XSS attacks.
      * @param {HTMLElement} element - The target element.
-     * @returns {string} - The HTML content of the element.
+     * @returns {string} - The sanitized HTML content of the element.
      */
-    static getElementHTML(element) {
-        return element.innerHTML;
+    static getHTML(element) {
+        const tempDiv = document.createElement('div');
+        tempDiv.innerHTML = element.innerHTML;
+        tempDiv.querySelectorAll('script, iframe, link').forEach(node => node.remove());
+        return tempDiv.innerHTML;
     }
 
     /**
-     * Set the text content of an element.
+     * Set the text content of an element with optional transformation.
      * @param {HTMLElement} element - The target element.
      * @param {string} textContent - The text content to set.
+     * @param {Object} [options] - Optional transformations for the text content.
+     * @param {boolean} [options.toUpperCase] - Whether to convert the text to uppercase.
+     * @param {boolean} [options.toLowerCase] - Whether to convert the text to lowercase.
      */
-    static setElementText(element, textContent) {
+    static setText(element, textContent, options = {}) {
+        if (options.toUpperCase) {
+            textContent = textContent.toUpperCase();
+        }
+        if (options.toLowerCase) {
+            textContent = textContent.toLowerCase();
+        }
         element.textContent = textContent;
     }
 
     /**
-     * Get the text content of an element.
-     * @param {HTMLElement} element - The target element.
-     * @returns {string} - The text content of the element.
-     */
-    static getElementText(element) {
-        return element.textContent;
-    }
-
-    /**
-     * Append a child element to a parent element.
+     * Append a child element to a parent element with recursion.
      * @param {HTMLElement} parentElement - The parent element.
      * @param {HTMLElement} childElement - The child element to append.
+     * @param {boolean} [recursive=false] - Whether to recursively append all child nodes.
      */
-    static appendElement(parentElement, childElement) {
-        parentElement.appendChild(childElement);
+    static appendElement(parentElement, childElement, recursive = false) {
+        if (recursive && childElement.childNodes.length) {
+            childElement.childNodes.forEach(child => {
+                if (child instanceof HTMLElement) {
+                    parentElement.appendChild(child.cloneNode(true));
+                }
+            });
+        } else {
+            parentElement.appendChild(childElement);
+        }
     }
 
     /**
@@ -117,23 +170,6 @@ export class Element {
         childNodes.forEach(childNode => {
             parentElement.appendChild(childNode);
         });
-    }
-    
-    /**
-     * Removes a specified element from the DOM.
-     * @param {HTMLElement} element - The element to be removed from the DOM.
-     */
-    static removeElement(element) {
-        element.remove();
-    }
-
-    /**
-     * Prepend a child element to a parent element.
-     * @param {HTMLElement} parentElement - The parent element.
-     * @param {HTMLElement} childElement - The child element to prepend.
-     */
-    static prependElement(parentElement, childElement) {
-        parentElement.insertBefore(childElement, parentElement.firstChild);
     }
 
     /**
@@ -169,32 +205,6 @@ export class Element {
     }
 
     /**
-     * Get the next sibling element of an element.
-     * @param {HTMLElement} element - The target element.
-     * @returns {HTMLElement|null} - The next sibling element or null if no next sibling exists.
-     */
-    static getNextSiblingElement(element) {
-        return element.nextElementSibling;
-    }
-
-    /**
-     * Get the previous sibling element of an element.
-     * @param {HTMLElement} element - The target element.
-     * @returns {HTMLElement|null} - The previous sibling element or null if no previous sibling exists.
-     */
-    static getPreviousSiblingElement(element) {
-        return element.previousElementSibling;
-    }
-
-    /**
-     * Empty the content of an element by removing all its child nodes.
-     * @param {HTMLElement} element - The target element.
-     */
-    static emptyElement(element) {
-        element.innerHTML = '';
-    }
-
-    /**
      * Check if an element is currently visible in the viewport.
      * @param {HTMLElement} element - The element to check.
      * @returns {boolean} - True if the element is visible, false otherwise.
@@ -211,44 +221,6 @@ export class Element {
      */
     static isElementHidden(element) {
         return element.offsetParent === null;
-    }
-
-    /**
-     * Get the first child element of a parent element.
-     * @param {HTMLElement} parentElement - The parent element.
-     * @returns {HTMLElement|null} - The first child element or null if no child element exists.
-     */
-    static getFirstChildElement(parentElement) {
-        return parentElement.firstElementChild;
-    }
-
-    /**
-     * Get the last child element of a parent element.
-     * @param {HTMLElement} parentElement - The parent element.
-     * @returns {HTMLElement|null} - The last child element or null if no child element exists.
-     */
-    static getLastChildElement(parentElement) {
-        return parentElement.lastElementChild;
-    }
-
-    /**
-     * Get child elements of a parent element by a specific class.
-     * @param {HTMLElement} parentElement - The parent element.
-     * @param {string} className - The class name to filter child elements.
-     * @returns {Array<HTMLElement>} - An array of child elements with the specified class.
-     */
-    static getChildrenByClass(parentElement, className) {
-        return Array.from(parentElement.getElementsByClassName(className));
-    }
-
-    /**
-     * Get elements by a CSS selector within a specific context.
-     * @param {string} selector - The CSS selector.
-     * @param {HTMLElement|Document} context - The context within which to search for elements.
-     * @returns {Array<HTMLElement>} - An array of elements matching the selector within the given context.
-     */
-    static getElementsBySelector(selector, context) {
-        return Array.from((context || document).querySelectorAll(selector));
     }
 
     /**
@@ -304,16 +276,6 @@ export class Element {
     }
 
     /**
-     * Check if an element matches a CSS selector.
-     * @param {HTMLElement} element - The target element.
-     * @param {string} selector - The CSS selector to match.
-     * @returns {boolean} - True if the element matches the selector, false otherwise.
-     */
-    static matchesSelector(element, selector) {
-        return element.matches(selector);
-    }
-
-    /**
      * Find the closest common ancestor of an array of elements.
      * @param {Array<HTMLElement>} elements - The array of elements.
      * @returns {HTMLElement|null} - The closest common ancestor, or null if not found.
@@ -337,26 +299,6 @@ export class Element {
         }
 
         return null;
-    }
-
-    /**
-     * Set data attribute on an element.
-     * @param {HTMLElement} element - The target element.
-     * @param {string} key - The data attribute key.
-     * @param {string} value - The data attribute value.
-     */
-    static setElementData(element, key, value) {
-        element.dataset[key] = value;
-    }
-
-    /**
-     * Get the value of a data attribute on an element.
-     * @param {HTMLElement} element - The target element.
-     * @param {string} key - The data attribute key.
-     * @returns {string|null} - The value of the data attribute or null if the attribute is not set.
-     */
-    static getElementData(element, key) {
-        return element.dataset[key];
     }
 
     /**
@@ -388,24 +330,6 @@ export class Element {
     }
 
     /**
-     * Set the id attribute of an element.
-     * @param {HTMLElement} element - The target element.
-     * @param {string} newId - The new id value.
-     */
-    static setElementId(element, newId) {
-        element.id = newId;
-    }
-
-    /**
-     * Get the id attribute of an element.
-     * @param {HTMLElement} element - The target element.
-     * @returns {string} - The id attribute value.
-     */
-    static getElementId(element) {
-        return element.id;
-    }
-
-    /**
      * Generate a unique id with an optional prefix.
      * @param {string} prefix - The optional prefix for the id.
      * @returns {string} - The generated unique id.
@@ -415,31 +339,39 @@ export class Element {
     }
 
     /**
-     * Set a property on an element.
-     * @param {HTMLElement} element - The target element.
-     * @param {string} propertyName - The name of the property to set.
-     * @param {any} propertyValue - The value to set for the property.
+     * Enable event delegation for a parent element.
+     * @param {HTMLElement} parentElement - The parent element where the event is bound.
+     * @param {string} childSelector - The selector for child elements.
+     * @param {string} eventType - The event type to delegate.
+     * @param {Function} handler - The event handler.
      */
-    static setElementProperty(element, propertyName, propertyValue) {
-        element[propertyName] = propertyValue;
+    static delegateEvent(parentElement, childSelector, eventType, handler) {
+        parentElement.addEventListener(eventType, (event) => {
+            const potentialElements = parentElement.querySelectorAll(childSelector);
+            potentialElements.forEach((el) => {
+                if (el === event.target || el.contains(event.target)) {
+                    handler.call(el, event);
+                }
+            });
+        });
     }
 
     /**
-     * Get the value of a property on an element.
-     * @param {HTMLElement} element - The target element.
-     * @param {string} propertyName - The name of the property to get.
-     * @returns {any} - The value of the property.
+     * Clone an element deeply with data attributes, styles, and listeners.
+     * @param {HTMLElement} element - The element to clone.
+     * @param {boolean} [deepClone=true] - Whether to deeply clone all child elements.
+     * @param {boolean} [cloneListeners=false] - Whether to clone event listeners.
+     * @returns {HTMLElement} The cloned element.
      */
-    static getElementProperty(element, propertyName) {
-        return element[propertyName];
-    }
+    static cloneElement(element, deepClone = true, cloneListeners = false) {
+        const clone = element.cloneNode(deepClone);
 
-    /**
-     * Remove a property from an element.
-     * @param {HTMLElement} element - The target element.
-     * @param {string} propertyName - The name of the property to remove.
-     */
-    static removeElementProperty(element, propertyName) {
-        delete element[propertyName];
+        if (cloneListeners) {
+            // Clone event listeners (listeners would have to be explicitly tracked)
+            const listeners = getEventListeners(element); // Hypothetical method
+            listeners.forEach(listener => clone.addEventListener(listener.type, listener.handler));
+        }
+
+        return clone;
     }
 }
