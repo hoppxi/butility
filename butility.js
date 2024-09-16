@@ -9,10 +9,17 @@ var Element = class {
    * @param {string} [options.innerText] - The inner text of the element.
    * @param {string} [options.innerHTML] - The inner HTML of the element.
    * @param {Array<HTMLElement>} [options.children] - The child elements to append to the element.
+   * @param {boolean} [options.draggable] - Whether the element should be draggable.
+   * @param {string} [options.style] - Optional inline styles to set on the element.
+   * @param {boolean} [options.trackMutation] - Whether to monitor changes to the element.
    * @param {Function} [callback] - A callback function to perform additional operations on the created element.
    * @returns {HTMLElement} The created HTML element.
+   * @throws Will throw an error if required properties are missing.
    */
-  static createElement(options, callback2) {
+  static create(options, callback2) {
+    if (!options || !options.name) {
+      throw new Error("Element creation requires a 'name' property.");
+    }
     const element = document.createElement(options.name);
     if (options.class && Array.isArray(options.class)) {
       options.class.forEach((className) => {
@@ -40,50 +47,90 @@ var Element = class {
         }
       });
     }
+    if (options.draggable) {
+      element.draggable = true;
+    }
+    if (options.style) {
+      element.style.cssText = options.style;
+    }
+    if (options.trackMutation) {
+      const observer = new MutationObserver((mutations) => {
+        mutations.forEach((mutation) => {
+          console.log("Mutation observed:", mutation);
+        });
+      });
+      observer.observe(element, { attributes: true, childList: true, subtree: true });
+    }
     if (callback2 && typeof callback2 === "function") {
       callback2(element);
     }
     return element;
   }
   /**
-   * Set the HTML content of an element.
+   * Set the HTML content of an element with additional script evaluation.
    * @param {HTMLElement} element - The target element.
    * @param {string} htmlContent - The HTML content to set.
+   * @param {boolean} [evaluateScripts=false] - Whether to evaluate <script> tags in the content.
    */
-  static setElementHTML(element, htmlContent) {
+  static setHTML(element, htmlContent, evaluateScripts = false) {
     element.innerHTML = htmlContent;
+    if (evaluateScripts) {
+      const scripts = element.querySelectorAll("script");
+      scripts.forEach((script) => {
+        const newScript = document.createElement("script");
+        if (script.src) {
+          newScript.src = script.src;
+        } else {
+          newScript.textContent = script.textContent;
+        }
+        script.replaceWith(newScript);
+      });
+    }
   }
   /**
-   * Get the HTML content of an element.
+   * Get the HTML content of an element and sanitize it to prevent XSS attacks.
    * @param {HTMLElement} element - The target element.
-   * @returns {string} - The HTML content of the element.
+   * @returns {string} - The sanitized HTML content of the element.
    */
-  static getElementHTML(element) {
-    return element.innerHTML;
+  static getHTML(element) {
+    const tempDiv = document.createElement("div");
+    tempDiv.innerHTML = element.innerHTML;
+    tempDiv.querySelectorAll("script, iframe, link").forEach((node) => node.remove());
+    return tempDiv.innerHTML;
   }
   /**
-   * Set the text content of an element.
+   * Set the text content of an element with optional transformation.
    * @param {HTMLElement} element - The target element.
    * @param {string} textContent - The text content to set.
+   * @param {Object} [options] - Optional transformations for the text content.
+   * @param {boolean} [options.toUpperCase] - Whether to convert the text to uppercase.
+   * @param {boolean} [options.toLowerCase] - Whether to convert the text to lowercase.
    */
-  static setElementText(element, textContent) {
+  static setText(element, textContent, options = {}) {
+    if (options.toUpperCase) {
+      textContent = textContent.toUpperCase();
+    }
+    if (options.toLowerCase) {
+      textContent = textContent.toLowerCase();
+    }
     element.textContent = textContent;
   }
   /**
-   * Get the text content of an element.
-   * @param {HTMLElement} element - The target element.
-   * @returns {string} - The text content of the element.
-   */
-  static getElementText(element) {
-    return element.textContent;
-  }
-  /**
-   * Append a child element to a parent element.
+   * Append a child element to a parent element with recursion.
    * @param {HTMLElement} parentElement - The parent element.
    * @param {HTMLElement} childElement - The child element to append.
+   * @param {boolean} [recursive=false] - Whether to recursively append all child nodes.
    */
-  static appendElement(parentElement, childElement) {
-    parentElement.appendChild(childElement);
+  static appendElement(parentElement, childElement, recursive = false) {
+    if (recursive && childElement.childNodes.length) {
+      childElement.childNodes.forEach((child) => {
+        if (child instanceof HTMLElement) {
+          parentElement.appendChild(child.cloneNode(true));
+        }
+      });
+    } else {
+      parentElement.appendChild(childElement);
+    }
   }
   /**
    * Appends multiple child elements to a parent element.
@@ -94,21 +141,6 @@ var Element = class {
     childNodes.forEach((childNode) => {
       parentElement.appendChild(childNode);
     });
-  }
-  /**
-   * Removes a specified element from the DOM.
-   * @param {HTMLElement} element - The element to be removed from the DOM.
-   */
-  static removeElement(element) {
-    element.remove();
-  }
-  /**
-   * Prepend a child element to a parent element.
-   * @param {HTMLElement} parentElement - The parent element.
-   * @param {HTMLElement} childElement - The child element to prepend.
-   */
-  static prependElement(parentElement, childElement) {
-    parentElement.insertBefore(childElement, parentElement.firstChild);
   }
   /**
    * Clone an element with its classes to another element.
@@ -140,29 +172,6 @@ var Element = class {
     parent.removeChild(element);
   }
   /**
-   * Get the next sibling element of an element.
-   * @param {HTMLElement} element - The target element.
-   * @returns {HTMLElement|null} - The next sibling element or null if no next sibling exists.
-   */
-  static getNextSiblingElement(element) {
-    return element.nextElementSibling;
-  }
-  /**
-   * Get the previous sibling element of an element.
-   * @param {HTMLElement} element - The target element.
-   * @returns {HTMLElement|null} - The previous sibling element or null if no previous sibling exists.
-   */
-  static getPreviousSiblingElement(element) {
-    return element.previousElementSibling;
-  }
-  /**
-   * Empty the content of an element by removing all its child nodes.
-   * @param {HTMLElement} element - The target element.
-   */
-  static emptyElement(element) {
-    element.innerHTML = "";
-  }
-  /**
    * Check if an element is currently visible in the viewport.
    * @param {HTMLElement} element - The element to check.
    * @returns {boolean} - True if the element is visible, false otherwise.
@@ -178,40 +187,6 @@ var Element = class {
    */
   static isElementHidden(element) {
     return element.offsetParent === null;
-  }
-  /**
-   * Get the first child element of a parent element.
-   * @param {HTMLElement} parentElement - The parent element.
-   * @returns {HTMLElement|null} - The first child element or null if no child element exists.
-   */
-  static getFirstChildElement(parentElement) {
-    return parentElement.firstElementChild;
-  }
-  /**
-   * Get the last child element of a parent element.
-   * @param {HTMLElement} parentElement - The parent element.
-   * @returns {HTMLElement|null} - The last child element or null if no child element exists.
-   */
-  static getLastChildElement(parentElement) {
-    return parentElement.lastElementChild;
-  }
-  /**
-   * Get child elements of a parent element by a specific class.
-   * @param {HTMLElement} parentElement - The parent element.
-   * @param {string} className - The class name to filter child elements.
-   * @returns {Array<HTMLElement>} - An array of child elements with the specified class.
-   */
-  static getChildrenByClass(parentElement, className) {
-    return Array.from(parentElement.getElementsByClassName(className));
-  }
-  /**
-   * Get elements by a CSS selector within a specific context.
-   * @param {string} selector - The CSS selector.
-   * @param {HTMLElement|Document} context - The context within which to search for elements.
-   * @returns {Array<HTMLElement>} - An array of elements matching the selector within the given context.
-   */
-  static getElementsBySelector(selector, context) {
-    return Array.from((context || document).querySelectorAll(selector));
   }
   /**
    * Get the closest ancestor element matching a selector.
@@ -262,15 +237,6 @@ var Element = class {
     return Array.from(parentElement.querySelectorAll(selector));
   }
   /**
-   * Check if an element matches a CSS selector.
-   * @param {HTMLElement} element - The target element.
-   * @param {string} selector - The CSS selector to match.
-   * @returns {boolean} - True if the element matches the selector, false otherwise.
-   */
-  static matchesSelector(element, selector) {
-    return element.matches(selector);
-  }
-  /**
    * Find the closest common ancestor of an array of elements.
    * @param {Array<HTMLElement>} elements - The array of elements.
    * @returns {HTMLElement|null} - The closest common ancestor, or null if not found.
@@ -292,24 +258,6 @@ var Element = class {
       }
     }
     return null;
-  }
-  /**
-   * Set data attribute on an element.
-   * @param {HTMLElement} element - The target element.
-   * @param {string} key - The data attribute key.
-   * @param {string} value - The data attribute value.
-   */
-  static setElementData(element, key, value) {
-    element.dataset[key] = value;
-  }
-  /**
-   * Get the value of a data attribute on an element.
-   * @param {HTMLElement} element - The target element.
-   * @param {string} key - The data attribute key.
-   * @returns {string|null} - The value of the data attribute or null if the attribute is not set.
-   */
-  static getElementData(element, key) {
-    return element.dataset[key];
   }
   /**
    * Remove a data attribute from an element.
@@ -337,22 +285,6 @@ var Element = class {
     return { ...element.dataset };
   }
   /**
-   * Set the id attribute of an element.
-   * @param {HTMLElement} element - The target element.
-   * @param {string} newId - The new id value.
-   */
-  static setElementId(element, newId) {
-    element.id = newId;
-  }
-  /**
-   * Get the id attribute of an element.
-   * @param {HTMLElement} element - The target element.
-   * @returns {string} - The id attribute value.
-   */
-  static getElementId(element) {
-    return element.id;
-  }
-  /**
    * Generate a unique id with an optional prefix.
    * @param {string} prefix - The optional prefix for the id.
    * @returns {string} - The generated unique id.
@@ -361,120 +293,183 @@ var Element = class {
     return (prefix || "") + Math.random().toString(36).substr(2, 9);
   }
   /**
-   * Set a property on an element.
-   * @param {HTMLElement} element - The target element.
-   * @param {string} propertyName - The name of the property to set.
-   * @param {any} propertyValue - The value to set for the property.
+   * Enable event delegation for a parent element.
+   * @param {HTMLElement} parentElement - The parent element where the event is bound.
+   * @param {string} childSelector - The selector for child elements.
+   * @param {string} eventType - The event type to delegate.
+   * @param {Function} handler - The event handler.
    */
-  static setElementProperty(element, propertyName, propertyValue) {
-    element[propertyName] = propertyValue;
+  static delegateEvent(parentElement, childSelector, eventType, handler) {
+    parentElement.addEventListener(eventType, (event) => {
+      const potentialElements = parentElement.querySelectorAll(childSelector);
+      potentialElements.forEach((el) => {
+        if (el === event.target || el.contains(event.target)) {
+          handler.call(el, event);
+        }
+      });
+    });
   }
   /**
-   * Get the value of a property on an element.
-   * @param {HTMLElement} element - The target element.
-   * @param {string} propertyName - The name of the property to get.
-   * @returns {any} - The value of the property.
+   * Clone an element deeply with data attributes, styles, and listeners.
+   * @param {HTMLElement} element - The element to clone.
+   * @param {boolean} [deepClone=true] - Whether to deeply clone all child elements.
+   * @param {boolean} [cloneListeners=false] - Whether to clone event listeners.
+   * @returns {HTMLElement} The cloned element.
    */
-  static getElementProperty(element, propertyName) {
-    return element[propertyName];
-  }
-  /**
-   * Remove a property from an element.
-   * @param {HTMLElement} element - The target element.
-   * @param {string} propertyName - The name of the property to remove.
-   */
-  static removeElementProperty(element, propertyName) {
-    delete element[propertyName];
+  static cloneElement(element, deepClone = true, cloneListeners = false) {
+    const clone = element.cloneNode(deepClone);
+    if (cloneListeners) {
+      const listeners = getEventListeners(element);
+      listeners.forEach((listener) => clone.addEventListener(listener.type, listener.handler));
+    }
+    return clone;
   }
 };
 
 // src/DOM/element/attribute.js
 var Attribute = class {
   /**
-   * Set the value of an attribute on an element.
+   * Set the value of an attribute on an element with additional validation.
+   * Also ensures the attribute name follows HTML5 standards and allows setting custom data attributes.
    * @param {HTMLElement} element - The target element.
    * @param {string} attributeName - The name of the attribute.
    * @param {string} attributeValue - The value to set for the attribute.
    */
   static setElementAttribute(element, attributeName, attributeValue) {
-    element.setAttribute(attributeName, attributeValue);
+    if (!element || !(element instanceof HTMLElement)) {
+      throw new Error("Invalid HTMLElement provided.");
+    }
+    if (typeof attributeName !== "string" || attributeName.trim() === "") {
+      throw new Error("Attribute name must be a non-empty string.");
+    }
+    if (/^data-/.test(attributeName)) {
+      element.dataset[attributeName.slice(5)] = attributeValue;
+    } else {
+      element.setAttribute(attributeName, attributeValue);
+    }
   }
   /**
-   * Remove an attribute from an element.
+   * Remove an attribute from an element, with safe checks.
+   * Also handles the removal of data attributes.
    * @param {HTMLElement} element - The target element.
    * @param {string} attributeName - The name of the attribute to remove.
    */
   static removeElementAttribute(element, attributeName) {
-    element.removeAttribute(attributeName);
+    if (!element || !(element instanceof HTMLElement)) {
+      throw new Error("Invalid HTMLElement provided.");
+    }
+    if (/^data-/.test(attributeName)) {
+      delete element.dataset[attributeName.slice(5)];
+    } else if (element.hasAttribute(attributeName)) {
+      element.removeAttribute(attributeName);
+    } else {
+      console.warn(`Attribute "${attributeName}" does not exist on`, element);
+    }
   }
   /**
    * Get the value of an attribute on an element.
+   * Also supports getting values of custom data attributes.
    * @param {HTMLElement} element - The target element.
    * @param {string} attributeName - The name of the attribute.
-   * @returns {string|null} - The value of the attribute or null if the attribute is not set.
+   * @returns {string|null} - The value of the attribute or null if not set.
    */
   static getElementAttribute(element, attributeName) {
-    return element.getAttribute(attributeName);
+    if (!element || !(element instanceof HTMLElement)) {
+      throw new Error("Invalid HTMLElement provided.");
+    }
+    return /^data-/.test(attributeName) ? element.dataset[attributeName.slice(5)] || null : element.getAttribute(attributeName);
   }
   /**
-   * Set multiple attributes on an element.
+   * Set multiple attributes on an element, optimized with batch processing.
+   * Supports setting both regular and data attributes in bulk.
    * @param {HTMLElement} element - The target element.
    * @param {Object} attributes - An object where keys are attribute names and values are attribute values.
    */
   static setElementAttributes(element, attributes) {
-    for (const attributeName in attributes) {
-      if (Object.prototype.hasOwnProperty.call(attributes, attributeName)) {
+    if (!element || !(element instanceof HTMLElement)) {
+      throw new Error("Invalid HTMLElement provided.");
+    }
+    if (!attributes || typeof attributes !== "object") {
+      throw new Error("Attributes must be a valid object.");
+    }
+    Object.keys(attributes).forEach((attributeName) => {
+      if (/^data-/.test(attributeName)) {
+        element.dataset[attributeName.slice(5)] = attributes[attributeName];
+      } else {
         element.setAttribute(attributeName, attributes[attributeName]);
       }
-    }
+    });
+    console.log(`Attributes set:`, attributes, "on", element);
   }
   /**
-   * Get all attributes and their values from an element.
+   * Get all attributes and their values from an element, including data attributes.
    * @param {HTMLElement} element - The target element.
    * @returns {Object} - An object containing all attributes and their values.
    */
   static getAllElementAttributes(element) {
-    const attributes = {};
-    for (const attr of element.attributes) {
-      attributes[attr.name] = attr.value;
+    if (!element || !(element instanceof HTMLElement)) {
+      throw new Error("Invalid HTMLElement provided.");
     }
+    const attributes = {};
+    Array.from(element.attributes).forEach((attr) => {
+      attributes[attr.name] = attr.value;
+    });
+    Object.keys(element.dataset).forEach((dataKey) => {
+      attributes[`data-${dataKey}`] = element.dataset[dataKey];
+    });
     return attributes;
   }
   /**
    * Check if an element has a specific attribute.
+   * Also checks for data attributes.
    * @param {HTMLElement} element - The target element.
    * @param {string} attributeName - The name of the attribute to check.
    * @returns {boolean} - True if the element has the attribute, false otherwise.
    */
   static hasElementAttribute(element, attributeName) {
-    return element.hasAttribute(attributeName);
+    if (!element || !(element instanceof HTMLElement)) {
+      throw new Error("Invalid HTMLElement provided.");
+    }
+    return /^data-/.test(attributeName) ? attributeName.slice(5) in element.dataset : element.hasAttribute(attributeName);
   }
   /**
    * Toggle the presence of an attribute on an element.
-   * If the attribute exists, it will be removed; if it doesn't exist, it will be added.
+   * Supports toggling between true/false values for boolean attributes.
    * @param {HTMLElement} element - The target element.
    * @param {string} attributeName - The name of the attribute to toggle.
    */
   static toggleElementAttribute(element, attributeName) {
+    if (!element || !(element instanceof HTMLElement)) {
+      throw new Error("Invalid HTMLElement provided.");
+    }
     if (this.hasElementAttribute(element, attributeName)) {
       this.removeElementAttribute(element, attributeName);
     } else {
       this.setElementAttribute(element, attributeName, "");
     }
+    console.log(`Attribute "${attributeName}" toggled on`, element);
   }
   /**
-   * Remove all attributes from an element.
+   * Remove all attributes from an element, including data attributes.
+   * Optimized for performance by batching removal operations.
    * @param {HTMLElement} element - The target element.
    */
   static removeAllElementAttributes(element) {
-    for (const attr of element.attributes) {
-      element.removeAttribute(attr.name);
+    if (!element || !(element instanceof HTMLElement)) {
+      throw new Error("Invalid HTMLElement provided.");
     }
+    Array.from(element.attributes).forEach((attr) => {
+      element.removeAttribute(attr.name);
+    });
+    Object.keys(element.dataset).forEach((dataKey) => {
+      delete element.dataset[dataKey];
+    });
+    console.log(`All attributes removed from`, element);
   }
 };
 
 // src/DOM/composite/object.js
-var Obj = class _Obj {
+var Obj = class {
   /**
    * Compare two objects for equality.
    * @param {Object} obj1 - The first object.
@@ -482,15 +477,54 @@ var Obj = class _Obj {
    * @returns {boolean} - True if the objects are equal, false otherwise.
    */
   static compareObjects(obj1, obj2) {
-    return JSON.stringify(obj1) === JSON.stringify(obj2);
+    if (obj1 === obj2) return true;
+    if (obj1 === null || obj2 === null || typeof obj1 !== "object" || typeof obj2 !== "object") {
+      return false;
+    }
+    if (obj1.constructor !== obj2.constructor) return false;
+    if (Array.isArray(obj1)) {
+      if (obj1.length !== obj2.length) return false;
+      return obj1.every((item, index) => this.compareObjects(item, obj2[index]));
+    }
+    const keys1 = Object.keys(obj1);
+    const keys2 = Object.keys(obj2);
+    if (keys1.length !== keys2.length) return false;
+    for (let key of keys1) {
+      if (!keys2.includes(key)) return false;
+      if (!this.compareObjects(obj1[key], obj2[key])) return false;
+    }
+    return true;
   }
   /**
    * Deep clone an object.
    * @param {Object} obj - The object to clone.
+   * @param {WeakMap} cache
    * @returns {Object} - The cloned object.
    */
-  static deepCloneObject(obj) {
-    return JSON.parse(JSON.stringify(obj));
+  static deepCloneObject(obj, cache = /* @__PURE__ */ new WeakMap()) {
+    if (obj === null || typeof obj !== "object") return obj;
+    if (cache.has(obj)) return cache.get(obj);
+    let clone;
+    if (obj instanceof Date) {
+      clone = new Date(obj);
+    } else if (obj instanceof RegExp) {
+      clone = new RegExp(obj);
+    } else if (obj instanceof Map) {
+      clone = new Map(Array.from(obj.entries(), ([key, value]) => [this.deepCloneObject(key, cache), this.deepCloneObject(value, cache)]));
+    } else if (obj instanceof Set) {
+      clone = new Set(Array.from(obj, (value) => this.deepCloneObject(value, cache)));
+    } else if (Array.isArray(obj)) {
+      clone = obj.map((item) => this.deepCloneObject(item, cache));
+    } else {
+      clone = {};
+      cache.set(obj, clone);
+      for (let key in obj) {
+        if (obj.hasOwnProperty(key)) {
+          clone[key] = this.deepCloneObject(obj[key], cache);
+        }
+      }
+    }
+    return clone;
   }
   /**
    * Deep merge two objects.
@@ -499,17 +533,25 @@ var Obj = class _Obj {
    * @returns {Object} - The merged object.
    */
   static deepMergeObjects(target, source) {
-    const merged = { ...target };
+    if (!this.isPlainObject(target) && !Array.isArray(target)) return source;
     for (const key in source) {
       if (source.hasOwnProperty(key)) {
-        if (merged.hasOwnProperty(key) && typeof merged[key] === "object" && typeof source[key] === "object") {
-          merged[key] = _Obj.deepMergeObjects(merged[key], source[key]);
+        const targetValue = target[key];
+        const sourceValue = source[key];
+        if (Array.isArray(targetValue) && Array.isArray(sourceValue)) {
+          target[key] = [.../* @__PURE__ */ new Set([...targetValue, ...sourceValue])];
+        } else if (targetValue instanceof Map && sourceValue instanceof Map) {
+          sourceValue.forEach((value, key2) => targetValue.set(key2, this.deepMergeObjects(targetValue.get(key2), value)));
+        } else if (targetValue instanceof Set && sourceValue instanceof Set) {
+          sourceValue.forEach((value) => targetValue.add(value));
+        } else if (this.isPlainObject(targetValue) && this.isPlainObject(sourceValue)) {
+          target[key] = this.deepMergeObjects({ ...targetValue }, sourceValue);
         } else {
-          merged[key] = source[key];
+          target[key] = sourceValue;
         }
       }
     }
-    return merged;
+    return target;
   }
   /**
    * Deep freeze an object.
@@ -517,12 +559,18 @@ var Obj = class _Obj {
    * @returns {Object} - The frozen object.
    */
   static deepFreezeObject(obj) {
-    const keys = Object.keys(obj);
-    keys.forEach((key) => {
-      if (typeof obj[key] === "object" && obj[key] !== null) {
-        _Obj.deepFreezeObject(obj[key]);
+    if (obj === null || typeof obj !== "object" || Object.isFrozen(obj)) return obj;
+    Object.keys(obj).forEach((key) => {
+      const value = obj[key];
+      if (typeof value === "object" && value !== null) {
+        this.deepFreezeObject(value);
       }
     });
+    if (obj instanceof Map) {
+      obj.forEach((value, key) => this.deepFreezeObject(value));
+    } else if (obj instanceof Set) {
+      obj.forEach((value) => this.deepFreezeObject(value));
+    }
     return Object.freeze(obj);
   }
   /**
@@ -531,7 +579,7 @@ var Obj = class _Obj {
    * @returns {boolean} - True if the object is a plain object, false otherwise.
    */
   static isPlainObject(obj) {
-    return typeof obj === "object" && obj !== null && obj.constructor === Object;
+    return Object.prototype.toString.call(obj) === "[object Object]" && (obj.constructor === Object || typeof obj.constructor === "undefined");
   }
   /**
    * Check if an object is empty (has no own properties).
@@ -557,44 +605,16 @@ var Obj = class _Obj {
    * @returns {boolean} - True if the subset is a subset of the superset, false otherwise.
    */
   static isObjectSubset(subset, superset) {
+    if (subset === superset) return true;
     for (const key in subset) {
-      if (subset.hasOwnProperty(key) && superset.hasOwnProperty(key)) {
-        if (typeof subset[key] === "object" && typeof superset[key] === "object") {
-          if (!_Obj.isObjectSubset(subset[key], superset[key])) {
-            return false;
-          }
-        } else if (subset[key] !== superset[key]) {
-          return false;
-        }
-      } else {
+      if (!superset.hasOwnProperty(key)) return false;
+      if (typeof subset[key] === "object" && subset[key] !== null) {
+        if (!this.isObjectSubset(subset[key], superset[key])) return false;
+      } else if (subset[key] !== superset[key]) {
         return false;
       }
     }
     return true;
-  }
-  /**
-   * Get the keys of an object.
-   * @param {Object} obj - The object.
-   * @returns {Array} - An array containing the keys of the object.
-   */
-  static getObjectKeys(obj) {
-    return Object.keys(obj);
-  }
-  /**
-   * Get the values of an object.
-   * @param {Object} obj - The object.
-   * @returns {Array} - An array containing the values of the object.
-   */
-  static getObjectValues(obj) {
-    return Object.values(obj);
-  }
-  /**
-   * Get the entries of an object (key-value pairs).
-   * @param {Object} obj - The object.
-   * @returns {Array} - An array containing the entries of the object.
-   */
-  static getObjectEntries(obj) {
-    return Object.entries(obj);
   }
   /**
    * Map over the values of an object and apply a function.
@@ -606,7 +626,11 @@ var Obj = class _Obj {
     const mappedObj = {};
     for (const key in obj) {
       if (obj.hasOwnProperty(key)) {
-        mappedObj[key] = callback2(obj[key], key, obj);
+        if (typeof obj[key] === "object" && obj[key] !== null) {
+          mappedObj[key] = this.objectMap(obj[key], callback2);
+        } else {
+          mappedObj[key] = callback2(obj[key], key, obj);
+        }
       }
     }
     return mappedObj;
@@ -620,8 +644,14 @@ var Obj = class _Obj {
   static objectFilter(obj, predicate) {
     const filteredObj = {};
     for (const key in obj) {
-      if (obj.hasOwnProperty(key) && predicate(obj[key], key, obj)) {
-        filteredObj[key] = obj[key];
+      if (obj.hasOwnProperty(key)) {
+        const value = obj[key];
+        if (typeof value === "object" && value !== null) {
+          const filteredChild = this.objectFilter(value, predicate);
+          if (Object.keys(filteredChild).length > 0) filteredObj[key] = filteredChild;
+        } else if (predicate(value, key, obj)) {
+          filteredObj[key] = value;
+        }
       }
     }
     return filteredObj;
@@ -637,7 +667,12 @@ var Obj = class _Obj {
     let accumulator = initialValue;
     for (const key in obj) {
       if (obj.hasOwnProperty(key)) {
-        accumulator = callback2(accumulator, obj[key], key, obj);
+        const value = obj[key];
+        if (typeof value === "object" && value !== null) {
+          accumulator = this.objectReduce(value, callback2, accumulator);
+        } else {
+          accumulator = callback2(accumulator, value, key, obj);
+        }
       }
     }
     return accumulator;
@@ -731,9 +766,10 @@ var Obj = class _Obj {
    */
   static objectZip(keys, values) {
     const zippedObj = {};
-    keys.forEach((key, index) => {
-      zippedObj[key] = values[index];
-    });
+    const length = Math.min(keys.length, values.length);
+    for (let i = 0; i < length; i++) {
+      zippedObj[keys[i]] = values[i];
+    }
     return zippedObj;
   }
   /**
@@ -745,106 +781,154 @@ var Obj = class _Obj {
     const queryString = Object.entries(obj).map(([key, value]) => `${encodeURIComponent(key)}=${encodeURIComponent(value)}`).join("&");
     return queryString;
   }
-  /**
-   * Convert a query string to an object.
-   * @param {string} queryString - The query string.
-   * @returns {Object} - An object representation of the query string.
-   */
-  static queryStringToObject(queryString) {
-    const obj = {};
-    const params = new URLSearchParams(queryString);
-    params.forEach((value, key) => {
-      obj[key] = value;
-    });
-    return obj;
-  }
 };
 
 // src/DOM/composite/string.js
-var String2 = class {
+var String = class {
   /**
    * Check if a string is empty.
    * @param {string} value - The string to check.
    * @returns {boolean} - True if the string is empty, false otherwise.
    */
   static isEmptyString(value) {
-    return value.trim() === "";
+    if (typeof value !== "string") {
+      console.warn("isEmptyString: Input is not a string.");
+      return false;
+    }
+    const trimmed = value.trim();
+    return trimmed.length === 0;
   }
   /**
-   * Trim leading and trailing whitespace from a string.
-   * @param {string} value - The string to trim.
-   * @returns {string} - The trimmed string.
-   */
-  static trimString(value) {
-    return value.trim();
+  * Trim leading and trailing whitespace from a string, including newlines and tabs.
+  * Provides custom trimming for specific characters.
+  * @param {string} value - The string to trim.
+  * @param {string} [chars] - Optional characters to trim, defaults to whitespace.
+  * @returns {string} - The trimmed string.
+  */
+  static trimString(value, chars = " \n	\r") {
+    if (typeof value !== "string") {
+      throw new Error("trimString: Input must be a string.");
+    }
+    const regex = new RegExp(`^[${chars}]+|[${chars}]+$`, "g");
+    return value.replace(regex, "");
   }
   /**
-   * Capitalize the first letter of a string.
+   * Capitalize the first letter of each word in a string, supporting various word separators.
+   * Handles cases where words are already capitalized or include special characters.
    * @param {string} value - The string to capitalize.
+   * @param {string} [separator=' '] - Optional word separator.
    * @returns {string} - The capitalized string.
    */
-  static capitalizeString(value) {
-    return value.charAt(0).toUpperCase() + value.slice(1);
+  static capitalizeString(value, separator = " ") {
+    if (typeof value !== "string") {
+      throw new Error("capitalizeString: Input must be a string.");
+    }
+    return value.split(separator).map((word) => {
+      if (word.length === 0) return word;
+      return word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();
+    }).join(separator);
   }
   /**
-   * Check if a string starts with a specific substring.
+   * Check if a string starts with a specific substring. Supports case-sensitive or case-insensitive checks.
    * @param {string} mainString - The main string.
    * @param {string} searchString - The substring to check for.
+   * @param {boolean} [caseSensitive=true] - Whether to perform a case-sensitive search.
    * @returns {boolean} - True if the string starts with the substring, false otherwise.
    */
-  static startsWithString(mainString, searchString) {
+  static startsWithString(mainString, searchString, caseSensitive = true) {
+    if (typeof mainString !== "string" || typeof searchString !== "string") {
+      throw new Error("startsWithString: Both inputs must be strings.");
+    }
+    if (!caseSensitive) {
+      mainString = mainString.toLowerCase();
+      searchString = searchString.toLowerCase();
+    }
     return mainString.startsWith(searchString);
   }
   /**
-   * Check if a string ends with a specific substring.
+   * Check if a string ends with a specific substring. Supports case-sensitive or case-insensitive checks.
    * @param {string} mainString - The main string.
    * @param {string} searchString - The substring to check for.
+   * @param {boolean} [caseSensitive=true] - Whether to perform a case-sensitive search.
    * @returns {boolean} - True if the string ends with the substring, false otherwise.
    */
-  static endsWithString(mainString, searchString) {
+  static endsWithString(mainString, searchString, caseSensitive = true) {
+    if (typeof mainString !== "string" || typeof searchString !== "string") {
+      throw new Error("endsWithString: Both inputs must be strings.");
+    }
+    if (!caseSensitive) {
+      mainString = mainString.toLowerCase();
+      searchString = searchString.toLowerCase();
+    }
     return mainString.endsWith(searchString);
   }
   /**
-   * Check if a string contains a specific substring.
+   * Check if a string contains a specific substring, with options for case-sensitivity and custom start position.
    * @param {string} mainString - The main string.
    * @param {string} searchString - The substring to check for.
+   * @param {boolean} [caseSensitive=true] - Whether to perform a case-sensitive search.
+   * @param {number} [startIndex=0] - Position to start searching from.
    * @returns {boolean} - True if the string contains the substring, false otherwise.
    */
-  static containsString(mainString, searchString) {
-    return mainString.includes(searchString);
+  static containsString(mainString, searchString, caseSensitive = true, startIndex = 0) {
+    if (typeof mainString !== "string" || typeof searchString !== "string") {
+      throw new Error("containsString: Both inputs must be strings.");
+    }
+    if (startIndex < 0 || startIndex >= mainString.length) {
+      console.warn("containsString: Invalid start index.");
+      return false;
+    }
+    if (!caseSensitive) {
+      mainString = mainString.toLowerCase();
+      searchString = searchString.toLowerCase();
+    }
+    return mainString.indexOf(searchString, startIndex) !== -1;
   }
   /**
-   * Replace all occurrences of a substring in a string.
+   * Replace all occurrences of a substring in a string, with optional case-sensitivity.
    * @param {string} mainString - The main string.
    * @param {string} searchString - The substring to replace.
    * @param {string} replacement - The string to replace with.
+   * @param {boolean} [caseSensitive=true] - Whether to perform a case-sensitive replacement.
    * @returns {string} - The modified string.
    */
-  static replaceAllOccurrences(mainString, searchString, replacement) {
-    return mainString.split(searchString).join(replacement);
+  static replaceAllOccurrences(mainString, searchString, replacement, caseSensitive = true) {
+    if (typeof mainString !== "string" || typeof searchString !== "string" || typeof replacement !== "string") {
+      throw new Error("replaceAllOccurrences: All inputs must be strings.");
+    }
+    const regexFlags = caseSensitive ? "g" : "gi";
+    const escapedSearchString = searchString.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    const regex = new RegExp(escapedSearchString, regexFlags);
+    return mainString.replace(regex, replacement);
   }
   /**
-   * Format a string using values.
+   * Format a string using values. Uses deep path resolution for nested object properties.
    * @param {string} template - The string template with placeholders.
    * @param {Object} values - The values to replace placeholders in the template.
    * @returns {string} - The formatted string.
    */
   static formatString(template, values) {
-    return template.replace(/{([^{}]*)}/g, (match, key) => values[key]);
+    return template.replace(/{([^{}]*)}/g, (match, key) => {
+      const keys = key.split(".");
+      return keys.reduce((acc, k) => acc && acc[k] !== void 0 ? acc[k] : match, values);
+    });
   }
   /**
-   * Generate a random string of a specified length.
+   * Generate a random string of a specified length, with optional character set.
    * @param {number} length - The length of the random string.
+   * @param {string} [charSet] - Optional set of characters to use.
    * @returns {string} - The generated random string.
    */
-  static generateRandomString(length) {
-    const characters = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
-    let randomString = "";
-    for (let i = 0; i < length; i++) {
-      const randomIndex = Math.floor(Math.random() * characters.length);
-      randomString += characters.charAt(randomIndex);
+  static generateRandomString(length, charSet = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789") {
+    if (typeof length !== "number" || length <= 0) {
+      throw new Error("generateRandomString: Length must be a positive number.");
     }
-    return randomString;
+    const result = [];
+    for (let i = 0; i < length; i++) {
+      const randomIndex = Math.floor(Math.random() * charSet.length);
+      result.push(charSet[randomIndex]);
+    }
+    return result.join("");
   }
 };
 
@@ -1172,63 +1256,160 @@ var Style = class {
 // src/DOM/main/utility.js
 var Utility = class {
   /**
-   * Adds a CSS class to an HTML element.
+   * Adds a CSS class to an HTML element with error handling and optional animation trigger.
    * @param {HTMLElement} element - The HTML element.
    * @param {string} className - The name of the CSS class to add.
+   * @param {Object} [options] - Additional options.
+   * @param {boolean} [options.checkIfExists=false] - Whether to check if the class already exists before adding.
+   * @param {boolean} [options.triggerAnimation=false] - Whether to trigger an animation after the class is added.
+   * @throws Will throw an error if the element or className is invalid.
    */
-  static addClass(element, className) {
+  static addClass(element, className, options = {}) {
+    if (!(element instanceof HTMLElement)) {
+      throw new Error("Invalid element provided.");
+    }
+    if (typeof className !== "string" || !className.trim()) {
+      throw new Error("Invalid className provided.");
+    }
+    const { checkIfExists = false, triggerAnimation = false } = options;
+    if (checkIfExists && element.classList.contains(className)) {
+      console.warn(`Class "${className}" already exists on the element.`);
+      return;
+    }
     element.classList.add(className);
+    if (triggerAnimation) {
+      element.style.transition = "opacity 0.5s";
+      element.style.opacity = 0;
+      setTimeout(() => {
+        element.style.opacity = 1;
+      }, 10);
+    }
   }
   /**
-   * Removes a CSS class from an HTML element.
+   * Removes a CSS class from an HTML element with advanced logging and state preservation.
    * @param {HTMLElement} element - The HTML element.
    * @param {string} className - The name of the CSS class to remove.
+   * @param {Object} [options] - Additional options.
+   * @param {boolean} [options.logChanges=false] - Whether to log the class removal.
+   * @param {boolean} [options.preserveState=false] - Whether to preserve a backup of the class list for undo functionality.
    */
-  static removeClass(element, className) {
+  static removeClass(element, className, options = {}) {
+    if (!(element instanceof HTMLElement)) {
+      throw new Error("Invalid element provided.");
+    }
+    if (typeof className !== "string" || !className.trim()) {
+      throw new Error("Invalid className provided.");
+    }
+    const { logChanges = false, preserveState = false } = options;
+    if (preserveState) {
+      element.dataset.previousClassList = element.className;
+    }
     element.classList.remove(className);
+    if (logChanges) {
+      console.log(`Class "${className}" removed from element.`);
+    }
   }
   /**
-   * Checks if an HTML element has a specific CSS class.
+   * Checks if an HTML element has a specific CSS class and includes async delay options.
    * @param {HTMLElement} element - The HTML element.
    * @param {string} className - The name of the CSS class to check.
-   * @returns {boolean} True if the element has the class, false otherwise.
+   * @param {Object} [options] - Additional options.
+   * @param {number} [options.delay=0] - Optional delay before checking the class, useful in animations.
+   * @returns {Promise<boolean>} True if the element has the class, false otherwise.
    */
-  static hasClass(element, className) {
+  static async hasClass(element, className, options = {}) {
+    if (!(element instanceof HTMLElement)) {
+      throw new Error("Invalid element provided.");
+    }
+    if (typeof className !== "string" || !className.trim()) {
+      throw new Error("Invalid className provided.");
+    }
+    const { delay = 0 } = options;
+    if (delay > 0) {
+      await new Promise((resolve) => setTimeout(resolve, delay));
+    }
     return element.classList.contains(className);
   }
   /**
-   * Toggles a CSS class on an HTML element. If the class is present, it is removed; otherwise, it is added.
+   * Toggles a CSS class on an HTML element with conditional behavior and callbacks.
    * @param {HTMLElement} element - The HTML element.
    * @param {string} className - The name of the CSS class to toggle.
+   * @param {Object} [options] - Additional options.
+   * @param {Function} [options.onAdd] - Callback function when the class is added.
+   * @param {Function} [options.onRemove] - Callback function when the class is removed.
    */
-  static toggleClass(element, className) {
-    element.classList.toggle(className);
+  static toggleClass(element, className, options = {}) {
+    if (!(element instanceof HTMLElement)) {
+      throw new Error("Invalid element provided.");
+    }
+    if (typeof className !== "string" || !className.trim()) {
+      throw new Error("Invalid className provided.");
+    }
+    const { onAdd, onRemove } = options;
+    if (element.classList.toggle(className)) {
+      if (typeof onAdd === "function") {
+        onAdd(element);
+      }
+    } else {
+      if (typeof onRemove === "function") {
+        onRemove(element);
+      }
+    }
   }
   /**
-   * Replaces one CSS class with another on an HTML element.
+   * Replaces one CSS class with another on an HTML element, with undo capability.
    * @param {HTMLElement} element - The HTML element.
    * @param {string} oldClass - The class to be replaced.
    * @param {string} newClass - The class to replace it with.
+   * @param {Object} [options] - Additional options.
+   * @param {boolean} [options.enableUndo=false] - Whether to enable undo functionality.
+   * @returns {Function|null} An undo function if undo is enabled, otherwise null.
    */
-  static replaceClass(element, oldClass, newClass) {
+  static replaceClass(element, oldClass, newClass, options = {}) {
+    if (!(element instanceof HTMLElement)) {
+      throw new Error("Invalid element provided.");
+    }
+    if (typeof oldClass !== "string" || !oldClass.trim() || typeof newClass !== "string" || !newClass.trim()) {
+      throw new Error("Invalid class names provided.");
+    }
+    const { enableUndo = false } = options;
     this.removeClass(element, oldClass);
     this.addClass(element, newClass);
+    if (enableUndo) {
+      const undo = () => {
+        this.removeClass(element, newClass);
+        this.addClass(element, oldClass);
+        console.log(`Undo: Class "${newClass}" replaced back with "${oldClass}".`);
+      };
+      return undo;
+    }
+    return null;
   }
   /**
-   * Adds multiple CSS classes to an HTML element.
+   * Adds multiple CSS classes to an HTML element, with an optional timeout before applying the classes.
    * @param {HTMLElement} element - The HTML element.
-   * @param {...string} classNames - The names of the CSS classes to add.
+   * @param {Array<string>} classNames - The names of the CSS classes to add.
+   * @param {Object} [options] - Additional options.
+   * @param {number} [options.timeout=0] - Optional delay before applying the classes.
+   * @param {boolean} [options.checkForDuplicates=false] - Check for duplicate classes before adding.
+   * @returns {Promise<void>} A promise that resolves when all classes are added.
    */
-  static addClasses(element, ...classNames) {
-    element.classList.add(...classNames);
-  }
-  /**
-   * Removes multiple CSS classes from an HTML element.
-   * @param {HTMLElement} element - The HTML element.
-   * @param {...string} classNames - The names of the CSS classes to remove.
-   */
-  static removeClasses(element, ...classNames) {
-    element.classList.remove(...classNames);
+  static async addClasses(element, classNames, options = {}) {
+    if (!(element instanceof HTMLElement)) {
+      throw new Error("Invalid element provided.");
+    }
+    if (!Array.isArray(classNames) || classNames.some((name) => typeof name !== "string" || !name.trim())) {
+      throw new Error("Invalid classNames provided.");
+    }
+    const { timeout = 0, checkForDuplicates = false } = options;
+    if (timeout > 0) {
+      await new Promise((resolve) => setTimeout(resolve, timeout));
+    }
+    classNames.forEach((className) => {
+      if (!checkForDuplicates || !element.classList.contains(className)) {
+        element.classList.add(className);
+      }
+    });
   }
   /**
    * Replaces multiple CSS classes with new ones on an HTML element.
@@ -1241,13 +1422,6 @@ var Utility = class {
         this.replaceClass(element, oldClass, classMap[oldClass]);
       }
     }
-  }
-  /**
-   * Removes all CSS classes from an HTML element.
-   * @param {HTMLElement} element - The HTML element.
-   */
-  static removeAllClasses(element) {
-    element.className = "";
   }
   /**
    * Toggles a class on an HTML element conditionally based on a provided boolean condition.
@@ -1265,14 +1439,6 @@ var Utility = class {
       this.addClass(element, falseClass);
       this.removeClass(element, trueClass);
     }
-  }
-  /**
-   * Retrieves an array of all CSS classes on an HTML element.
-   * @param {HTMLElement} element - The HTML element.
-   * @returns {string[]} An array of CSS class names.
-   */
-  static getAllClasses(element) {
-    return Array.from(element.classList);
   }
   /**
    * Checks if an HTML element has any of the specified classes.
@@ -1465,19 +1631,62 @@ var Utility = class {
     handleConnectionChange();
   }
   /**
-   * Toggles a class when the geolocation changes.
-   * @param {HTMLElement} element - The target element.
-   * @param {string} className - The class name to toggle.
+   * Toggles a CSS class on an HTML element based on changes in the user's geolocation.
+   * Adds advanced error handling, throttling, and custom callback support.
+   * @param {HTMLElement} element - The HTML element.
+   * @param {string} className - The CSS class to toggle.
+   * @param {Object} [options] - Optional settings for geolocation.
+   * @param {boolean} [options.enableThrottling=true] - Enables throttling to limit how often the class is toggled.
+   * @param {number} [options.throttleInterval=5000] - Throttle interval in milliseconds (default is 5 seconds).
+   * @param {Function} [options.onClassToggle] - Optional callback that triggers whenever the class is toggled.
+   * @param {Function} [options.onError] - Optional error handling callback for geolocation errors.
+   * @param {Object} [options.geoOptions] - Custom geolocation API options (e.g., enableHighAccuracy, timeout, maximumAge).
    */
-  static toggleClassOnGeolocationChange(element, className) {
-    navigator.geolocation.watchPosition(
-      (position) => {
-        this.toggleClass(element, className);
-      },
-      (error) => {
-        console.error(error);
+  static toggleClassOnGeolocationChange(element, className, options = {}) {
+    if (!(element instanceof HTMLElement)) {
+      throw new Error("Invalid element provided.");
+    }
+    if (typeof className !== "string" || !className.trim()) {
+      throw new Error("Invalid className provided.");
+    }
+    const {
+      enableThrottling = true,
+      throttleInterval = 5e3,
+      onClassToggle = null,
+      onError = null,
+      geoOptions = { enableHighAccuracy: true, timeout: 1e4, maximumAge: 0 }
+    } = options;
+    let lastToggleTime = 0;
+    let classToggled = false;
+    const toggleClassWithConditions = (position) => {
+      const currentTime = Date.now();
+      if (enableThrottling && currentTime - lastToggleTime < throttleInterval) {
+        console.log("Throttling geolocation updates, skipping toggle.");
+        return;
       }
+      this.toggleClass(element, className);
+      if (typeof onClassToggle === "function") {
+        onClassToggle(position, classToggled);
+      }
+      classToggled = !classToggled;
+      lastToggleTime = currentTime;
+    };
+    const handleGeolocationError = (error) => {
+      console.error("Geolocation error occurred:", error.message);
+      if (typeof onError === "function") {
+        onError(error);
+      }
+    };
+    const geoWatchId = navigator.geolocation.watchPosition(
+      toggleClassWithConditions,
+      handleGeolocationError,
+      geoOptions
     );
+    console.log("Started watching geolocation changes with ID:", geoWatchId);
+    return () => {
+      navigator.geolocation.clearWatch(geoWatchId);
+      console.log("Stopped watching geolocation changes.");
+    };
   }
 };
 
@@ -1932,7 +2141,7 @@ var Modal = class {
   static destroyModal(modalId) {
     const modal = document.getElementById(modalId);
     if (modal) {
-      Element.removeElement(modal);
+      modal.remove();
     }
   }
   /**
@@ -1944,7 +2153,7 @@ var Modal = class {
   static setModalContent(modalId, content) {
     const modal = document.getElementById(modalId);
     if (modal) {
-      Element.setElementHTML(modal, content);
+      Element.setHTML(modal, content);
     }
   }
   /**
@@ -1955,7 +2164,7 @@ var Modal = class {
    */
   static getModalContent(modalId) {
     const modal = document.getElementById(modalId);
-    return modal ? Element.getElementHTML(modal) : "";
+    return modal ? Element.getHTML(modal) : "";
   }
 };
 
@@ -1968,7 +2177,24 @@ var Ripple = class _Ripple {
    * @param {string} [options.color='rgba(255, 255, 255, 0.5)'] - The color of the ripple effect in CSS color format.
    * @param {string} [options.duration='0.6s'] - The duration of the ripple effect animation in CSS time format.
    * @param {number} [options.size=4] - The size of the ripple effect relative to the element's dimensions.
-   */
+      * 
+      * 
+      * Ripple effect css,
+      * Add this to your existing CSS file or create a new one
+      * 	.ripple {
+      * 		position: absolute;
+      * 		border-radius: 50%;
+      * 		transform: scale(0);
+      * 		animation: rippleEffect 0.6s linear;
+      * 	}
+      *
+      * 	@keyframes rippleEffect {
+      * 		to {
+      * 			transform: scale(4);
+      * 			opacity: 0;
+      * 		}
+      * 	}
+      */
   static addRippleEffect(element, options = {}) {
     const defaultOptions = {
       color: "rgba(255, 255, 255, 0.5)",
@@ -2119,43 +2345,85 @@ function Tooltip(targetElement, tooltipContent, callback2) {
 // src/form/main.js
 var FormAction = class {
   /**
-   * Generate a random password.
+   * Generates a secure password with multiple customization options, including character sets,
+   * entropy calculation, exclusion rules, and cryptographic security.
    * @param {number} length - The length of the password.
-   * @param {object} options - Additional options for password generation (eg. charset).
-   * @returns {string} - The generated password.
+   * @param {Object} options - Options for generating the password.
+   * @param {string[]} [options.customCharsets] - Array of custom character sets (strings) to use.
+   * @param {boolean} [options.includeSymbols=true] - Whether to include symbols in the password.
+   * @param {boolean} [options.includeNumbers=true] - Whether to include numbers in the password.
+   * @param {boolean} [options.includeUppercase=true] - Whether to include uppercase letters.
+   * @param {boolean} [options.includeLowercase=true] - Whether to include lowercase letters.
+   * @param {boolean} [options.avoidRepeats=true] - Prevents consecutive repeating characters.
+   * @param {boolean} [options.useCryptoRandom=true] - Whether to use a cryptographically secure random generator.
+   * @param {number} [options.minEntropy=50] - Minimum entropy for the generated password (in bits).
+   * @param {string[]} [options.exclude] - List of characters to exclude from the password.
+   * @param {Function} [options.onCharacterSelected] - Custom callback after each character is selected.
+   * @returns {string} The generated password.
+   * @throws {Error} Throws an error if password criteria cannot be met.
    */
-  static generatePassword(length, options) {
-    const charset = options.charset || "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
-    let password = "";
-    for (let i = 0; i < length; i++) {
-      const randomIndex = Math.floor(Math.random() * charset.length);
-      password += charset[randomIndex];
+  static generatePassword(length, options = {}) {
+    const {
+      customCharsets = [],
+      includeSymbols = true,
+      includeNumbers = true,
+      includeUppercase = true,
+      includeLowercase = true,
+      avoidRepeats = true,
+      useCryptoRandom = true,
+      minEntropy = 50,
+      exclude = [],
+      onCharacterSelected = null
+    } = options;
+    if (length <= 0 || typeof length !== "number") {
+      throw new Error("Password length must be a positive number.");
     }
+    const lowercaseCharset = "abcdefghijklmnopqrstuvwxyz";
+    const uppercaseCharset = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+    const numberCharset = "0123456789";
+    const symbolCharset = "!@#$%^&*()-_=+[]{}|;:<>,.?/~`";
+    let charset = customCharsets.join("") || (includeLowercase ? lowercaseCharset : "") + (includeUppercase ? uppercaseCharset : "") + (includeNumbers ? numberCharset : "") + (includeSymbols ? symbolCharset : "");
+    charset = charset.split("").filter((char) => !exclude.includes(char)).join("");
+    if (!charset.length) {
+      throw new Error("Charset is empty. Please provide valid options or customCharsets.");
+    }
+    const calculateEntropy = (charLength, pwdLength) => {
+      return Math.log2(Math.pow(charLength, pwdLength));
+    };
+    let entropy = calculateEntropy(charset.length, length);
+    if (entropy < minEntropy) {
+      throw new Error(`Password entropy (${entropy.toFixed(2)} bits) is below the required minimum (${minEntropy} bits). Increase password length or diversify the charset.`);
+    }
+    const getRandomIndex = (max) => {
+      if (useCryptoRandom && window.crypto && window.crypto.getRandomValues) {
+        const randomArray = new Uint32Array(1);
+        window.crypto.getRandomValues(randomArray);
+        return randomArray[0] % max;
+      } else {
+        return Math.floor(Math.random() * max);
+      }
+    };
+    let password = "";
+    let lastChar = null;
+    const pickCharacter = () => {
+      let char;
+      do {
+        const randomIndex = getRandomIndex(charset.length);
+        char = charset[randomIndex];
+      } while (avoidRepeats && char === lastChar);
+      return char;
+    };
+    for (let i = 0; i < length; i++) {
+      const selectedChar = pickCharacter();
+      password += selectedChar;
+      lastChar = selectedChar;
+      if (typeof onCharacterSelected === "function") {
+        onCharacterSelected(selectedChar, i);
+      }
+    }
+    entropy = calculateEntropy(charset.length, password.length);
+    console.log(`Password generated with entropy: ${entropy.toFixed(2)} bits.`);
     return password;
-  }
-  /**
-   * Hash a password with a salt using the Web Crypto API.
-   * @param {string} password - The password to hash.
-   * @param {string} salt - The salt for hashing.
-   * @returns {Promise<string>} - A promise that resolves to the hashed password.
-   */
-  static async hashPassword(password, salt) {
-    const encoder = new TextEncoder();
-    const data = encoder.encode(password + salt);
-    const hashBuffer = await crypto.subtle.digest("SHA-256", data);
-    const hashedPassword = Array.from(new Uint8Array(hashBuffer)).map((byte) => String.fromCharCode(byte)).join("");
-    return hashedPassword;
-  }
-  /**
-   * Verify a password against its hash and salt.
-   * @param {string} hash - The hashed password.
-   * @param {string} password - The password to verify.
-   * @param {string} salt - The salt used for hashing.
-   * @returns {boolean} - True if the password is verified, false otherwise.
-   */
-  static verifyPassword(hash, password, salt) {
-    const hashedPassword = this.hashPassword(password, salt);
-    return hash === hashedPassword;
   }
   /**
    * Encrypt text with a key.
@@ -2180,28 +2448,6 @@ var FormAction = class {
     let decryptedText = decipher.update(encryptedText, "hex", "utf-8");
     decryptedText += decipher.final("utf-8");
     return decryptedText;
-  }
-  /**
-   * Generate a secure token of the specified length using the Web Crypto API.
-   * @param {number} length - The length of the token.
-   * @returns {Promise<string>} - A promise that resolves to the generated secure token.
-   */
-  static async generateToken(length) {
-    const tokenArray = new Uint8Array(length);
-    crypto.getRandomValues(tokenArray);
-    const token = Array.from(tokenArray).map((byte) => byte.toString(16).padStart(2, "0")).join("");
-    return token;
-  }
-  /**
-   * Generate a secure one-time password (OTP) of the specified length using the Web Crypto API.
-   * @param {number} length - The length of the OTP.
-   * @returns {Promise<string>} - A promise that resolves to the generated OTP.
-   */
-  static async generateOTP(length) {
-    const otpArray = new Uint8Array(length);
-    crypto.getRandomValues(otpArray);
-    const otp = Array.from(otpArray).map((byte) => byte.toString(10)).join("").slice(0, length);
-    return otp;
   }
   /**
    * Disable all input elements in a form.
@@ -2237,8 +2483,8 @@ var FormAction = class {
   static showErrorMessage(element, message) {
     const errorElement = document.createElement("div");
     errorElement.className = "error";
-    Element.setElementText(errorElement, message);
-    Element.prependElement(errorElement, element.nextSibling);
+    errorElement.text = message;
+    errorElement.prependElement(element.nextSibling);
   }
   /**
    * Hide the error message associated with an element.
@@ -2388,49 +2634,6 @@ var Validate = class {
     return true;
   }
   /**
-   * Validates a One-Time Password (OTP) entered by the user.
-   *
-   * @param {string} userOTP - The OTP entered by the user for validation.
-   * @param {string} storedOTP - The predefined OTP stored for comparison.
-   * @param {number} [expirationTime=5] - The expiration time for the OTP in minutes.
-   * @param {number} [maxAttempts=3] - The maximum allowed attempts for OTP validation.
-   *
-   * @returns {Object} An object containing the validation result.
-   * @property {boolean} success - Indicates whether the OTP validation was successful.
-   * @property {string} message - A message providing information about the validation result.
-   */
-  static validateOTP(userOTP, storedOTP, expirationTime = 5, maxAttempts = 3) {
-    const now = (/* @__PURE__ */ new Date()).getTime();
-    const storedOTPDetails = JSON.parse(localStorage.getItem("otpDetails")) || {};
-    if (storedOTPDetails.attempts >= maxAttempts) {
-      return {
-        success: false,
-        message: "Maximum attempts exceeded. Please try again later."
-      };
-    }
-    if (storedOTPDetails.timestamp && now - storedOTPDetails.timestamp > expirationTime * 60 * 1e3) {
-      return {
-        success: false,
-        message: "OTP has expired. Please request a new one."
-      };
-    }
-    if (userOTP === storedOTP) {
-      localStorage.setItem("otpDetails", JSON.stringify({ attempts: 0, timestamp: null }));
-      return {
-        success: true,
-        message: "OTP validated successfully!"
-      };
-    } else {
-      storedOTPDetails.attempts = (storedOTPDetails.attempts || 0) + 1;
-      storedOTPDetails.timestamp = now;
-      localStorage.setItem("otpDetails", JSON.stringify(storedOTPDetails));
-      return {
-        success: false,
-        message: "Invalid OTP. Please try again."
-      };
-    }
-  }
-  /**
    * Validates a JSON Web Token (JWT) entered by the user.
    * @param {string} userToken - The JWT entered by the user for validation.
    * @param {string} secretKey - The secret key used to sign the JWT.
@@ -2508,68 +2711,6 @@ var Validate = class {
     } else {
       return "Weak - Insufficient complexity";
     }
-  }
-};
-
-// src/form/creditCard.js
-var CreditCard = class {
-  /**
-   * Check if the provided credit card number is valid.
-   * Using Luhn's algorithm for better validation.
-   *
-   * @param {string} cardNumber - The credit card number to validate.
-   * @returns {boolean} - True if the credit card number is valid, false otherwise.
-   */
-  static isValidCreditCardNumber(cardNumber) {
-    if (!/^\d{16}$/.test(cardNumber)) return false;
-    let sum = 0;
-    let shouldDouble = false;
-    for (let i = cardNumber.length - 1; i >= 0; i--) {
-      let digit = +cardNumber[i];
-      if (shouldDouble) {
-        digit *= 2;
-        if (digit > 9) digit -= 9;
-      }
-      sum += digit;
-      shouldDouble = !shouldDouble;
-    }
-    return sum % 10 === 0;
-  }
-  /**
-   * Check if the provided credit card expiry date is valid.
-   *
-   * @param {string} expiryDate - The credit card expiry date to validate (format: MM/YY).
-   * @returns {boolean} - True if the expiry date is valid, false otherwise.
-   */
-  static isValidCreditCardExpiry(expiryDate) {
-    if (!/^\d{2}\/\d{2}$/.test(expiryDate)) return false;
-    const [month, year] = expiryDate.split("/").map(Number);
-    const currentDate = /* @__PURE__ */ new Date();
-    const currentMonth = currentDate.getMonth() + 1;
-    const currentYear = currentDate.getFullYear() % 100;
-    if (month < 1 || month > 12) return false;
-    if (year < currentYear || year === currentYear && month < currentMonth) {
-      return false;
-    }
-    return true;
-  }
-  /**
-   * Check if the provided credit card CVV is valid.
-   *
-   * @param {string} cvv - The credit card CVV to validate.
-   * @returns {boolean} - True if the CVV is valid, false otherwise.
-   */
-  static isValidCreditCardCVV(cvv) {
-    return /^\d{3,4}$/.test(cvv);
-  }
-  /**
-   * Mask the provided credit card number, showing only the last four digits.
-   *
-   * @param {string} cardNumber - The credit card number to mask.
-   * @returns {string} - The masked credit card number.
-   */
-  static maskCreditCardNumber(cardNumber) {
-    return cardNumber.slice(-4).padStart(cardNumber.length, "*");
   }
 };
 
@@ -3074,14 +3215,6 @@ var RequestServer = class {
 // src/media/file/file.js
 var File = class _File {
   /**
-   * Gets the MIME type of a file.
-   * @param {File} file - The file to get the MIME type for.
-   * @returns {string} - The MIME type of the file.
-   */
-  static getMimeType(file) {
-    return file.type;
-  }
-  /**
    * Validates whether the file has an allowed file type.
    * @param {File} file - The file to validate.
    * @param {string[]} allowedTypes - An array of allowed MIME types.
@@ -3387,59 +3520,187 @@ var File = class _File {
 // src/media/file/blob.js
 var Blob2 = class _Blob {
   /**
-   * Converts a base64-encoded string to a Blob.
+   * Converts a base64-encoded string to a Blob with enhanced error handling and optional progress tracking.
    * @param {string} base64 - The base64-encoded string.
    * @param {string} contentType - The content type of the Blob (e.g., 'image/jpeg').
+   * @param {Function} [onProgress] - Optional callback function to track progress (range: 0 to 1).
    * @returns {Blob} - The Blob created from the base64 string.
    */
-  static convertBase64ToBlob(base64, contentType) {
-    const byteCharacters = atob(base64);
-    const byteNumbers = new Array(byteCharacters.length);
-    for (let i = 0; i < byteCharacters.length; i++) {
-      byteNumbers[i] = byteCharacters.charCodeAt(i);
+  static convertBase64ToBlob(base64, contentType, onProgress = null) {
+    try {
+      const byteCharacters = atob(base64);
+      const byteNumbers = new Array(byteCharacters.length);
+      for (let i = 0; i < byteCharacters.length; i++) {
+        byteNumbers[i] = byteCharacters.charCodeAt(i);
+        if (onProgress) onProgress(i / byteCharacters.length);
+      }
+      const byteArray = new Uint8Array(byteNumbers);
+      return new _Blob([byteArray], { type: contentType });
+    } catch (error) {
+      throw new Error(`Failed to convert base64 to Blob: ${error.message}`);
     }
-    const byteArray = new Uint8Array(byteNumbers);
-    return new _Blob([byteArray], { type: contentType });
   }
   /**
-   * Creates a Blob URL from a Blob.
-   * @param {Blob} blob - The Blob to create a URL for.
-   * @returns {string} - The Blob URL.
+   * Asynchronously converts a Blob to a base64-encoded string, with error handling and optional progress tracking.
+   * @param {Blob} blob - The Blob to convert to base64.
+   * @param {Function} [onProgress] - Optional callback function to track progress (range: 0 to 1).
+   * @returns {Promise<string>} - A promise that resolves to the base64 string.
    */
-  static createBlobURL(blob) {
-    return URL.createObjectURL(blob);
+  static async convertBlobToBase64(blob, onProgress = null) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onprogress = (event) => {
+        if (event.lengthComputable && onProgress) {
+          onProgress(event.loaded / event.total);
+        }
+      };
+      reader.onloadend = () => resolve(reader.result.split(",")[1]);
+      reader.onerror = () => reject(new Error("Failed to convert Blob to base64"));
+      reader.readAsDataURL(blob);
+    });
   }
   /**
-   * Revokes a Blob URL to free up resources.
-   * @param {string} url - The Blob URL to revoke.
-   */
-  static revokeBlobURL(url) {
-    URL.revokeObjectURL(url);
-  }
-  /**
-   * Initiates a download of a Blob as a file.
+   * Initiates a download of a Blob as a file, supporting optional MIME type fallback.
    * @param {Blob} blob - The Blob to download.
    * @param {string} filename - The name to be given to the downloaded file.
+   * @param {string} [fallbackContentType] - Optional fallback content type if the Blob has none.
    */
-  static downloadBlob(blob, filename) {
-    const url = URL.createObjectURL(blob);
+  static downloadBlob(blob, filename, fallbackContentType = "application/octet-stream") {
+    const contentType = blob.type || fallbackContentType;
+    const url = URL.createObjectURL(new _Blob([blob], { type: contentType }));
     const link = document.createElement("a");
     link.href = url;
     link.download = filename;
+    document.body.appendChild(link);
     link.click();
+    document.body.removeChild(link);
     URL.revokeObjectURL(url);
+  }
+  /**
+   * Converts a plain text string into a Blob with the specified encoding.
+   * @param {string} text - The plain text string to convert.
+   * @param {string} [encoding='utf-8'] - The character encoding for the text (default: utf-8).
+   * @returns {Blob} - The Blob containing the text.
+   */
+  static textToBlob(text, encoding = "utf-8") {
+    const encoder = new TextEncoder(encoding);
+    const uint8Array = encoder.encode(text);
+    return new _Blob([uint8Array], { type: `text/plain;charset=${encoding}` });
+  }
+  /**
+   * Merges multiple Blobs into a single Blob, with optional custom content type and buffer size.
+   * @param {Blob[]} blobs - An array of Blobs to merge.
+   * @param {string} [contentType='application/octet-stream'] - The content type of the merged Blob.
+   * @param {number} [bufferSize=1024] - Optional buffer size to optimize memory during merge.
+   * @returns {Blob} - The merged Blob.
+   */
+  static mergeBlobs(blobs, contentType = "application/octet-stream", bufferSize = 1024) {
+    const blobBuffers = blobs.map((blob) => blob.slice(0, bufferSize));
+    return new _Blob(blobBuffers, { type: contentType });
+  }
+  /**
+   * Encrypts the content of a Blob using a given key and returns an encrypted Blob.
+   * @param {Blob} blob - The Blob to encrypt.
+   * @param {CryptoKey} key - The encryption key (use SubtleCrypto API to generate).
+   * @returns {Promise<Blob>} - The encrypted Blob.
+   */
+  static async encryptBlob(blob, key) {
+    const arrayBuffer = await blob.arrayBuffer();
+    const iv = window.crypto.getRandomValues(new Uint8Array(12));
+    const encryptedData = await window.crypto.subtle.encrypt(
+      { name: "AES-GCM", iv },
+      key,
+      arrayBuffer
+    );
+    return new _Blob([iv, encryptedData], { type: blob.type });
+  }
+  /**
+   * Decrypts an encrypted Blob using a given key.
+   * @param {Blob} encryptedBlob - The encrypted Blob to decrypt.
+   * @param {CryptoKey} key - The decryption key.
+   * @returns {Promise<Blob>} - The decrypted Blob.
+   */
+  static async decryptBlob(encryptedBlob, key) {
+    const arrayBuffer = await encryptedBlob.arrayBuffer();
+    const iv = arrayBuffer.slice(0, 12);
+    const encryptedData = arrayBuffer.slice(12);
+    const decryptedData = await window.crypto.subtle.decrypt(
+      { name: "AES-GCM", iv: new Uint8Array(iv) },
+      key,
+      encryptedData
+    );
+    return new _Blob([decryptedData], { type: encryptedBlob.type });
+  }
+  /**
+   * Splits a Blob into smaller chunks.
+   * @param {Blob} blob - The Blob to split.
+   * @param {number} chunkSize - The size of each chunk in bytes.
+   * @returns {Blob[]} - An array of Blob chunks.
+   */
+  static chunkBlob(blob, chunkSize) {
+    const chunks = [];
+    let offset2 = 0;
+    while (offset2 < blob.size) {
+      const chunk = blob.slice(offset2, offset2 + chunkSize);
+      chunks.push(chunk);
+      offset2 += chunkSize;
+    }
+    return chunks;
+  }
+  /**
+   * Reads a Blob as text using a specified encoding, with optional error handling.
+   * @param {Blob} blob - The Blob to read as text.
+   * @param {string} [encoding='utf-8'] - The encoding of the text (default: utf-8).
+   * @returns {Promise<string>} - A promise that resolves to the text content of the Blob.
+   */
+  static async readBlobAsText(blob, encoding = "utf-8") {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result);
+      reader.onerror = () => reject(new Error("Failed to read Blob as text"));
+      reader.readAsText(blob, encoding);
+    });
+  }
+  /**
+   * Verifies if a Blob's size and content type meet specified conditions.
+   * @param {Blob} blob - The Blob to verify.
+   * @param {Object} conditions - Conditions to check (size, type).
+   * @param {number} [conditions.maxSize] - Maximum size allowed for the Blob (in bytes).
+   * @param {string[]} [conditions.allowedTypes] - Array of allowed MIME types.
+   * @returns {boolean} - True if Blob meets the conditions, false otherwise.
+   */
+  static verifyBlob(blob, { maxSize, allowedTypes } = {}) {
+    if (maxSize && blob.size > maxSize) {
+      return false;
+    }
+    if (allowedTypes && !allowedTypes.includes(blob.type)) {
+      return false;
+    }
+    return true;
+  }
+  /**
+   * Converts a Blob to a hexadecimal string representation.
+   * @param {Blob} blob - The Blob to convert.
+   * @returns {Promise<string>} - A promise that resolves to the hexadecimal string.
+   */
+  static async blobToHex(blob) {
+    const arrayBuffer = await blob.arrayBuffer();
+    const byteArray = new Uint8Array(arrayBuffer);
+    const hexString = Array.from(byteArray).map((byte) => byte.toString(16).padStart(2, "0")).join("");
+    return hexString;
   }
 };
 
 // src/network/URL/url.js
-var URLClass = class {
+var URLUtility = class {
   /**
    * Parses a query string and returns an object containing the parameters.
    *
    * @param {string} queryString - The query string to parse.
+   * @param {boolean} [decode=true] - Whether to decode the parameters.
    * @returns {object} - An object containing key-value pairs of parameters.
    */
-  static parseQueryStringParameters(queryString) {
+  static parseQueryStringParameters(queryString, decode = true) {
     const params = {};
     if (!queryString || typeof queryString !== "string") {
       return params;
@@ -3448,8 +3709,8 @@ var URLClass = class {
     const pairs = queryString.split("&");
     for (const pair of pairs) {
       const [key, value] = pair.split("=");
-      const decodedKey = decodeURIComponent(key);
-      const decodedValue = value ? decodeURIComponent(value) : "";
+      const decodedKey = decode ? decodeURIComponent(key) : key;
+      const decodedValue = value ? decode ? decodeURIComponent(value) : value : "";
       if (params.hasOwnProperty(decodedKey)) {
         if (Array.isArray(params[decodedKey])) {
           params[decodedKey].push(decodedValue);
@@ -3468,9 +3729,10 @@ var URLClass = class {
    * @param {string} url - The URL to modify.
    * @param {string} key - The parameter key to replace or add.
    * @param {string} value - The new value for the parameter.
+   * @param {boolean} [encode=true] - Whether to encode the parameter.
    * @returns {string} - The modified URL.
    */
-  static replaceQueryStringParameter(url, key, value) {
+  static replaceQueryStringParameter(url, key, value, encode = true) {
     if (!url || typeof url !== "string") {
       return url;
     }
@@ -3485,12 +3747,11 @@ var URLClass = class {
         params[decodedKey] = decodedValue;
       }
     }
-    const encodedKey = encodeURIComponent(key);
-    const encodedValue = encodeURIComponent(value);
-    params[encodedKey] = encodedValue;
+    const keyToUse = encode ? encodeURIComponent(key) : key;
+    const valueToUse = encode ? encodeURIComponent(value) : value;
+    params[keyToUse] = valueToUse;
     const newQueryString = Object.entries(params).map(([k, v]) => `${k}=${v}`).join("&");
-    const modifiedUrl = newQueryString ? `${baseUrl}?${newQueryString}` : baseUrl;
-    return modifiedUrl;
+    return newQueryString ? `${baseUrl}?${newQueryString}` : baseUrl;
   }
   /**
    * Removes a query string parameter from a URL.
@@ -3516,16 +3777,14 @@ var URLClass = class {
       delete params[key];
     }
     const newQueryString = Object.entries(params).map(([k, v]) => `${k}=${v}`).join("&");
-    const modifiedUrl = newQueryString ? `${baseUrl}?${newQueryString}` : baseUrl;
-    return modifiedUrl;
+    return newQueryString ? `${baseUrl}?${newQueryString}` : baseUrl;
   }
   /**
    * Merges two URLs by combining their components.
    *
    * @param {string} baseURL - The base URL.
    * @param {string} relativeURL - The relative URL to be merged with the base URL.
-   *
-   * @returns {string} The merged URL.
+   * @returns {string} - The merged URL.
    */
   static mergeURL(baseURL, relativeURL) {
     const base = new URL(baseURL);
@@ -3535,32 +3794,55 @@ var URLClass = class {
     return relative.href;
   }
   /**
-   * Parses a URL into an object.
-   * @param {string} url - The URL to parse.
-   * @returns {URL} - The URL object.
+   * Normalizes a URL by removing redundant parts and standardizing the format.
+   *
+   * @param {string} url - The URL to normalize.
+   * @returns {string} - The normalized URL.
    */
-  static parseURL(url) {
-    return new URL(url);
-  }
-  /**
-   * Serializes a URL object into a string.
-   * @param {URL} urlObject - The URL object to serialize.
-   * @returns {string} - The serialized URL.
-   */
-  static serializeURL(urlObject) {
-    return urlObject.toString();
-  }
-  /**
-   * Checks if a given string is a valid URL.
-   * @param {string} url - The URL to validate.
-   * @returns {boolean} - True if the URL is valid, false otherwise.
-   */
-  static isValidURL(url) {
+  static normalizeURL(url) {
     try {
-      new URL(url);
-      return true;
+      const normalized = new URL(url);
+      normalized.hash = normalized.hash.replace(/#$/, "");
+      return normalized.href;
     } catch (error) {
-      return false;
+      console.error("Invalid URL provided for normalization:", error);
+      return url;
+    }
+  }
+  /**
+   * Extracts and decodes the fragment (hash) portion of a URL.
+   *
+   * @param {string} url - The URL containing the fragment.
+   * @returns {string} - The decoded fragment.
+   */
+  static extractFragment(url) {
+    try {
+      const fragment = new URL(url).hash.substring(1);
+      return decodeURIComponent(fragment);
+    } catch {
+      console.error("Failed to extract or decode fragment from URL:", url);
+      return "";
+    }
+  }
+  /**
+   * Constructs a URL with the specified base, path, and query parameters.
+   *
+   * @param {string} base - The base URL.
+   * @param {string} path - The path to append to the base URL.
+   * @param {object} [queryParams={}] - An object of query parameters to add.
+   * @returns {string} - The constructed URL.
+   */
+  static constructURL(base, path = "", queryParams = {}) {
+    try {
+      const url = new URL(base);
+      if (path) url.pathname = path;
+      Object.entries(queryParams).forEach(([key, value]) => {
+        url.searchParams.set(key, value);
+      });
+      return url.href;
+    } catch (error) {
+      console.error("Error constructing URL:", error);
+      return "";
     }
   }
 };
@@ -3806,6 +4088,138 @@ var IP = class {
   }
 };
 
+// src/network/serviceWorker/serviceWorker.js
+var ServiceWorkerManager = class {
+  /**
+   * Registers a service worker.
+   *
+   * @param {string} url - The URL of the service worker script.
+   * @param {object} options - Optional registration options.
+   * @returns {Promise<ServiceWorkerRegistration>} - A promise that resolves to the service worker registration.
+   */
+  static registerServiceWorker(url, options = {}) {
+    if (!("serviceWorker" in navigator)) {
+      throw new Error("Service workers are not supported in this browser.");
+    }
+    return navigator.serviceWorker.register(url, options).then((registration) => {
+      console.log(`Service worker registered with scope: ${registration.scope}`);
+      return registration;
+    }).catch((error) => {
+      console.error(`Service worker registration failed: ${error}`);
+      throw error;
+    });
+  }
+  /**
+   * Unregisters a service worker by its registration scope.
+   *
+   * @param {string} scope - The scope of the service worker to unregister.
+   * @returns {Promise<boolean>} - A promise that resolves to true if the service worker was unregistered, false otherwise.
+   */
+  static unregisterServiceWorker(scope) {
+    if (!("serviceWorker" in navigator)) {
+      throw new Error("Service workers are not supported in this browser.");
+    }
+    return navigator.serviceWorker.getRegistrations().then((registrations) => {
+      const registration = registrations.find((reg) => reg.scope === scope);
+      if (registration) {
+        return registration.unregister().then((success) => {
+          console.log(`Service worker unregistered with scope: ${scope}`);
+          return success;
+        });
+      } else {
+        console.warn(`No service worker found with scope: ${scope}`);
+        return false;
+      }
+    }).catch((error) => {
+      console.error(`Service worker unregistration failed: ${error}`);
+      throw error;
+    });
+  }
+  /**
+   * Checks if a service worker is currently active.
+   *
+   * @param {string} scope - The scope of the service worker to check.
+   * @returns {Promise<boolean>} - A promise that resolves to true if the service worker is active, false otherwise.
+   */
+  static isServiceWorkerActive(scope) {
+    if (!("serviceWorker" in navigator)) {
+      throw new Error("Service workers are not supported in this browser.");
+    }
+    return navigator.serviceWorker.getRegistrations().then((registrations) => {
+      const registration = registrations.find((reg) => reg.scope === scope);
+      return registration && registration.active ? true : false;
+    }).catch((error) => {
+      console.error(`Failed to check service worker status: ${error}`);
+      throw error;
+    });
+  }
+  /**
+   * Posts a message to all service workers with a specific scope.
+   *
+   * @param {string} scope - The scope of the service workers to message.
+   * @param {object} message - The message to send.
+   * @returns {Promise<void>} - A promise that resolves when all messages have been sent.
+   */
+  static postMessageToServiceWorkers(scope, message) {
+    if (!("serviceWorker" in navigator)) {
+      throw new Error("Service workers are not supported in this browser.");
+    }
+    return navigator.serviceWorker.getRegistrations().then((registrations) => {
+      const registrationsInScope = registrations.filter((reg) => reg.scope === scope);
+      registrationsInScope.forEach((reg) => {
+        if (reg.active) {
+          reg.active.postMessage(message);
+        }
+      });
+    }).catch((error) => {
+      console.error(`Failed to post message to service workers: ${error}`);
+      throw error;
+    });
+  }
+  /**
+   * Updates all service workers with a specific scope.
+   *
+   * @param {string} scope - The scope of the service workers to update.
+   * @returns {Promise<void>} - A promise that resolves when all service workers have been updated.
+   */
+  static updateServiceWorkers(scope) {
+    if (!("serviceWorker" in navigator)) {
+      throw new Error("Service workers are not supported in this browser.");
+    }
+    return navigator.serviceWorker.getRegistrations().then((registrations) => {
+      const registrationsInScope = registrations.filter((reg) => reg.scope === scope);
+      return Promise.all(
+        registrationsInScope.map((reg) => reg.update())
+      ).then(() => {
+        console.log(`All service workers with scope ${scope} have been updated.`);
+      });
+    }).catch((error) => {
+      console.error(`Failed to update service workers: ${error}`);
+      throw error;
+    });
+  }
+  /**
+   * Retrieves the state of all service workers.
+   *
+   * @returns {Promise<Array<object>>} - A promise that resolves to an array of objects containing service worker state information.
+   */
+  static getServiceWorkerStates() {
+    if (!("serviceWorker" in navigator)) {
+      throw new Error("Service workers are not supported in this browser.");
+    }
+    return navigator.serviceWorker.getRegistrations().then((registrations) => {
+      return registrations.map((reg) => ({
+        scope: reg.scope,
+        state: reg.active ? "active" : "inactive",
+        updateState: reg.waiting ? "waiting" : "updating"
+      }));
+    }).catch((error) => {
+      console.error(`Failed to retrieve service worker states: ${error}`);
+      throw error;
+    });
+  }
+};
+
 // src/device/detection/features.js
 var DetectFeature = class {
   /**
@@ -3914,13 +4328,6 @@ var DetectFeature = class {
     return "WebSocket" in window || "MozWebSocket" in window;
   }
   /**
-   * Detects if Web Workers are supported in the browser.
-   * @returns {boolean} True if Web Workers are supported, false otherwise.
-   */
-  static detectWebWorkers() {
-    return "Worker" in window;
-  }
-  /**
    * Detects if SVG support is available in the browser.
    * @returns {boolean} True if SVG is supported, false otherwise.
    */
@@ -3961,13 +4368,6 @@ var DetectFeature = class {
     return !!(video.canPlayType && video.canPlayType("video/mp4;").replace(/no/, ""));
   }
   /**
-   * Detects Battery API support in the browser.
-   * @returns {boolean} True if Battery API is supported, false otherwise.
-   */
-  static detectBatteryAPI() {
-    return "getBattery" in navigator;
-  }
-  /**
    * Detects Speech Recognition API support in the browser.
    *
    * @returns {boolean} True if Speech Recognition API is supported, false otherwise.
@@ -3984,47 +4384,11 @@ var DetectFeature = class {
     return "RTCPeerConnection" in window || "mozRTCPeerConnection" in window || "webkitRTCPeerConnection" in window;
   }
   /**
-   * Detects Pointer Events support in the browser.
-   *
-   * @returns {boolean} True if Pointer Events are supported, false otherwise.
-   */
-  static detectPointerEvents() {
-    return "PointerEvent" in window;
-  }
-  /**
-   * Detects Touch Events support in the browser.
-   * @returns {boolean} True if Touch Events are supported, false otherwise.
-   */
-  static detectTouchEvents() {
-    return "ontouchstart" in window;
-  }
-  /**
    * Detects Retina Display support in the browser.
    * @returns {boolean} True if Retina Display is supported, false otherwise.
    */
   static detectRetinaDisplay() {
     return window.devicePixelRatio && window.devicePixelRatio > 1;
-  }
-  /**
-   * Detects Vibration API support in the browser.
-   * @returns {boolean} True if Vibration API is supported, false otherwise.
-   */
-  static detectVibrationAPI() {
-    return "vibrate" in navigator;
-  }
-  /**
-   * Detects Clipboard API support in the browser.
-   * @returns {boolean} True if Clipboard API is supported, false otherwise.
-   */
-  static detectClipboardAPI() {
-    return "ClipboardItem" in window;
-  }
-  /**
-   * Detects Speech Synthesis API support in the browser.
-   * @returns {boolean} True if Speech Synthesis API is supported, false otherwise.
-   */
-  static detectSpeechSynthesisAPI() {
-    return "speechSynthesis" in window;
   }
   /**
    * Detects Fullscreen API support in the browser.
@@ -4062,74 +4426,11 @@ var DetectFeature = class {
     return "pointerLockElement" in document || "mozPointerLockElement" in document || "webkitPointerLockElement" in document;
   }
   /**
-   * Detects Permissions API support in the browser.
-   * @returns {boolean} True if Permissions API is supported, false otherwise.
-   */
-  static detectPermissionsAPI() {
-    return "permissions" in navigator;
-  }
-  /**
-   * Detects Credential Management API support in the browser.
-   * @returns {boolean} True if Credential Management API is supported, false otherwise.
-   */
-  static detectCredentialManagementAPI() {
-    return "credentials" in navigator;
-  }
-  /**
-   * Detects Payment Request API support in the browser.
-   * @returns {boolean} True if Payment Request API is supported, false otherwise.
-   */
-  static detectPaymentRequestAPI() {
-    return "PaymentRequest" in window;
-  }
-  /**
-   * Detects WebAuthn API support in the browser.
-   * @returns {boolean} True if WebAuthn API is supported, false otherwise.
-   */
-  static detectWebAuthnAPI() {
-    return "PublicKeyCredential" in window;
-  }
-  /**
-   * Detects Media Recorder API support in the browser.
-   * @returns {boolean} True if Media Recorder API is supported, false otherwise.
-   */
-  static detectMediaRecorderAPI() {
-    return "MediaRecorder" in window;
-  }
-  /**
    * Detects Media Source Extensions support in the browser.
    * @returns {boolean} True if Media Source Extensions are supported, false otherwise.
    */
   static detectMediaSourceExtensions() {
     return "MediaSource" in window && "SourceBuffer" in window;
-  }
-  /**
-   * Detects Web Bluetooth API support in the browser.
-   * @returns {boolean} True if Web Bluetooth API is supported, false otherwise.
-   */
-  static detectWebBluetoothAPI() {
-    return "bluetooth" in navigator;
-  }
-  /**
-   * Detects Broadcast Channel API support in the browser.
-   * @returns {boolean} True if Broadcast Channel API is supported, false otherwise.
-   */
-  static detectBroadcastChannelAPI() {
-    return "BroadcastChannel" in window;
-  }
-  /**
-   * Detects FileSystem Access API support in the browser.
-   * @returns {boolean} True if FileSystem Access API is supported, false otherwise.
-   */
-  static detectFileSystemAccessAPI() {
-    return "showOpenFilePicker" in window;
-  }
-  /**
-   * Detects Media Capabilities API support in the browser.
-   * @returns {boolean} True if Media Capabilities API is supported, false otherwise.
-   */
-  static detectMediaCapabilitiesAPI() {
-    return "mediaCapabilities" in navigator;
   }
   /**
    * Detects Picture-in-Picture API support in the browser.
@@ -4147,137 +4448,11 @@ var DetectFeature = class {
     return "isImageBitmap" in window && "createImageBitmap" in window.ImageBitmap && "decode" in img;
   }
   /**
-   * Detects EventSource API support in the browser.
-   * @returns {boolean} True if EventSource API is supported, false otherwise.
-   */
-  static detectEventSourceAPI() {
-    return "EventSource" in window;
-  }
-  /**
-   * Detects Fetch API support in the browser.
-   * @returns {boolean} True if Fetch API is supported, false otherwise.
-   */
-  static detectFetchAPI() {
-    return "fetch" in window;
-  }
-  /**
-   * Detects FormData API support in the browser.
-   * @returns {boolean} True if FormData API is supported, false otherwise.
-   */
-  static detectFormDataAPI() {
-    return "FormData" in window;
-  }
-  /**
-   * Detects Intersection Observer API support in the browser.
-   * @returns {boolean} True if Intersection Observer API is supported, false otherwise.
-   */
-  static detectIntersectionObserverAPI() {
-    return "IntersectionObserver" in window;
-  }
-  /**
-   * Detects Mutation Observer API support in the browser.
-   * @returns {boolean} True if Mutation Observer API is supported, false otherwise.
-   */
-  static detectMutationObserverAPI() {
-    return "MutationObserver" in window;
-  }
-  /**
-   * Detects Resize Observer API support in the browser.
-   * @returns {boolean} True if Resize Observer API is supported, false otherwise.
-   */
-  static detectResizeObserverAPI() {
-    return "ResizeObserver" in window;
-  }
-  /**
-   * Detects Performance API support in the browser.
-   * @returns {boolean} True if Performance API is supported, false otherwise.
-   */
-  static detectPerformanceAPI() {
-    return "performance" in window;
-  }
-  /**
-   * Detects Geolocation API support in the browser.
-   * @returns {boolean} True if Geolocation API is supported, false otherwise.
-   */
-  static detectGeolocationAPI() {
-    return "geolocation" in navigator;
-  }
-  /**
    * Detects Page Visibility API support in the browser.
    * @returns {boolean} True if Page Visibility API is supported, false otherwise.
    */
   static detectPageVisibilityAPI() {
     return "hidden" in document || "webkitHidden" in document;
-  }
-  /**
-   * Detects Idle API support in the browser.
-   * @returns {boolean} True if Idle API is supported, false otherwise.
-   */
-  static detectIdle() {
-    return "IdleManager" in window;
-  }
-  /**
-   * Detects Credentials API support in the browser.
-   * @returns {boolean} True if Credentials API is supported, false otherwise.
-   */
-  static detectCredentialsAPI() {
-    return "credentials" in navigator;
-  }
-  /**
-   * Detects Web Share API support in the browser.
-   * @returns {boolean} True if Web Share API is supported, false otherwise.
-   */
-  static detectWebShareAPI() {
-    return "share" in navigator;
-  }
-  /**
-   * Detects Background Sync API support in the browser.
-   * @returns {boolean} True if Background Sync API is supported, false otherwise.
-   */
-  static detectBackgroundSyncAPI() {
-    return "BackgroundSyncManager" in window;
-  }
-  /**
-   * Detects Notification API support in the browser.
-   * @returns {boolean} True if Notification API is supported, false otherwise.
-   */
-  static detectNotificationAPI() {
-    return "Notification" in window;
-  }
-  /**
-   * Detects Push API support in the browser.
-   * @returns {boolean} True if Push API is supported, false otherwise.
-   */
-  static detectPushAPI() {
-    return "PushManager" in window;
-  }
-  /**
-   * Detects Notifications API support in the browser.
-   * @returns {boolean} True if Notifications API is supported, false otherwise.
-   */
-  static detectNotificationsAPI() {
-    return "notifications" in navigator;
-  }
-  /**
-   * Detects Service Worker API support in the browser.
-   * @returns {boolean} True if Service Worker API is supported, false otherwise.
-   */
-  static detectServiceWorkerAPI() {
-    return "serviceWorker" in navigator;
-  }
-  /**
-   * Detects Share API support in the browser.
-   * @returns {boolean} True if Share API is supported, false otherwise.
-   */
-  static detectShareAPI() {
-    return "canShare" in navigator;
-  }
-  /**
-   * Detects ImageBitmap API support in the browser.
-   * @returns {boolean} True if ImageBitmap API is supported, false otherwise.
-   */
-  static detectImageBitmapAPI() {
-    return "createImageBitmap" in window;
   }
   /**
    * Detects Audio Context API support in the browser.
@@ -4295,494 +4470,11 @@ var DetectFeature = class {
     return "WebGL2RenderingContext" in window && canvas.getContext("webgl2");
   }
   /**
-   * Detects WebVR API support in the browser.
-   * @returns {boolean} True if WebVR API is supported, false otherwise.
-   */
-  static detectWebVRAPI() {
-    return "getVRDisplays" in navigator;
-  }
-  /**
-   * Detects WebXR API support in the browser.
-   * @returns {boolean} True if WebXR API is supported, false otherwise.
-   */
-  static detectWebXRAPI() {
-    return "xr" in navigator;
-  }
-  /**
-   * Detects Offscreen Canvas API support in the browser.
-   * @returns {boolean} True if Offscreen Canvas API is supported, false otherwise.
-   */
-  static detectOffscreenCanvasAPI() {
-    return "OffscreenCanvas" in window;
-  }
-  /**
    * Detects Gamepad Haptic API support in the browser.
    * @returns {boolean} True if Gamepad Haptic API is supported, false otherwise.
    */
   static detectGamepadHapticAPI() {
     return "getGamepads" in navigator && "vibrationActuator" in navigator.getGamepads()[0];
-  }
-  /**
-   * Detects Presentation API support in the browser.
-   * @returns {boolean} True if Presentation API is supported, false otherwise.
-   */
-  static detectPresentationAPI() {
-    return "PresentationRequest" in window;
-  }
-  /**
-   * Detects Wake Lock API support in the browser.
-   * @returns {boolean} True if Wake Lock API is supported, false otherwise.
-   */
-  static detectWakeLockAPI() {
-    return "wakeLock" in navigator;
-  }
-  /**
-   * Detects Ambient Light Sensor API support in the browser.
-   * @returns {boolean} True if Ambient Light Sensor API is supported, false otherwise.
-   */
-  static detectAmbientLightSensorAPI() {
-    return "AmbientLightSensor" in window;
-  }
-  /**
-   * Detects Proximity Sensor API support in the browser.
-   * @returns {boolean} True if Proximity Sensor API is supported, false otherwise.
-   */
-  static detectProximitySensorAPI() {
-    return "ProximitySensor" in window;
-  }
-  /**
-   * Detects Accelerometer API support in the browser.
-   * @returns {boolean} True if Accelerometer API is supported, false otherwise.
-   */
-  static detectAccelerometerAPI() {
-    return "Accelerometer" in window;
-  }
-  /**
-   * Detects Gyroscope API support in the browser.
-   * @returns {boolean} True if Gyroscope API is supported, false otherwise.
-   */
-  static detectGyroscopeAPI() {
-    return "Gyroscope" in window;
-  }
-  /**
-   * Detects Magnetometer API support in the browser.
-   * @returns {boolean} True if Magnetometer API is supported, false otherwise.
-   */
-  static detectMagnetometerAPI() {
-    return "Magnetometer" in window;
-  }
-  /**
-   * Detects Generic Sensor API support in the browser.
-   * @returns {boolean} True if Generic Sensor API is supported, false otherwise.
-   */
-  static detectGenericSensorAPI() {
-    return "Sensor" in window;
-  }
-  /**
-   * Detects WebUSB API support in the browser.
-   * @returns {boolean} True if WebUSB API is supported, false otherwise.
-   */
-  static detectWebUSBAPI() {
-    return "usb" in navigator;
-  }
-  /**
-   * Detects Serial API support in the browser.
-   * @returns {boolean} True if Serial API is supported, false otherwise.
-   */
-  static detectSerialAPI() {
-    return "serial" in navigator;
-  }
-  /**
-   * Detects Bluetooth API support in the browser.
-   * @returns {boolean} True if Bluetooth API is supported, false otherwise.
-   */
-  static detectBluetoothAPI() {
-    return "bluetooth" in navigator;
-  }
-  /**
-   * Detects NFC API support in the browser.
-   * @returns {boolean} True if NFC API is supported, false otherwise.
-   */
-  static detectNFCAPI() {
-    return "nfc" in navigator;
-  }
-  /**
-   * Detects WebNFC API support in the browser.
-   * @returns {boolean} True if WebNFC API is supported, false otherwise.
-   */
-  static detectWebNFCAPI() {
-    return "NDEFReader" in window;
-  }
-  /**
-   * Detects Image Capture API support in the browser.
-   * @returns {boolean} True if Image Capture API is supported, false otherwise.
-   */
-  static detectImageCaptureAPI() {
-    return "ImageCapture" in window;
-  }
-  /**
-   * Detects Media Devices API support in the browser.
-   * @returns {boolean} True if Media Devices API is supported, false otherwise.
-   */
-  static detectMediaDevicesAPI() {
-    return "mediaDevices" in navigator;
-  }
-  /**
-   * Detects Screen Capture API support in the browser.
-   * @returns {boolean} True if Screen Capture API is supported, false otherwise.
-   */
-  static detectScreenCaptureAPI() {
-    return "getDisplayMedia" in navigator.mediaDevices;
-  }
-  /**
-   * Detects WebXR Device API support in the browser.
-   * @returns {boolean} True if WebXR Device API is supported, false otherwise.
-   */
-  static detectWebXRDeviceAPI() {
-    return "xr" in navigator;
-  }
-  /**
-   * Detects WebXR Session API support in the browser.
-   * @returns {boolean} True if WebXR Session API is supported, false otherwise.
-   */
-  static detectWebXRSessionAPI() {
-    return "XRSession" in window;
-  }
-  /**
-   * Detects WebXR Frame API support in the browser.
-   * @returns {boolean} True if WebXR Frame API is supported, false otherwise.
-   */
-  static detectWebXRFrameAPI() {
-    return "XRFrame" in window;
-  }
-  /**
-   * Detects WebXR Input Source API support in the browser.
-   * @returns {boolean} True if WebXR Input Source API is supported, false otherwise.
-   */
-  static detectWebXRInputSourceAPI() {
-    return "XRInputSource" in window;
-  }
-  /**
-   * Detects WebXR Pose API support in the browser.
-   * @returns {boolean} True if WebXR Pose API is supported, false otherwise.
-   */
-  static detectWebXRPoseAPI() {
-    return "XRPose" in window;
-  }
-  /**
-   * Detects WebXR Hit Test API support in the browser.
-   * @returns {boolean} True if WebXR Hit Test API is supported, false otherwise.
-   */
-  static detectWebXRHitTestAPI() {
-    return "XRHitTest" in window;
-  }
-  /**
-   * Detects WebXR Hand API support in the browser.
-   * @returns {boolean} True if WebXR Hand API is supported, false otherwise.
-   */
-  static detectWebXRHandAPI() {
-    return "XRHand" in window;
-  }
-  /**
-   * Detects WebXR Spatial Tracking API support in the browser.
-   * @returns {boolean} True if WebXR Spatial Tracking API is supported, false otherwise.
-   */
-  static detectWebXRSpatialTrackingAPI() {
-    return "XRSpatialTracking" in window;
-  }
-  /**
-   * Detects WebXR Viewer Reference Space API support in the browser.
-   * @returns {boolean} True if WebXR Viewer Reference Space API is supported, false otherwise.
-   */
-  static detectWebXRViewerReferenceSpaceAPI() {
-    return "XRViewerReferenceSpace" in window;
-  }
-  /**
-   * Detects WebXR Reference Space API support in the browser.
-   * @returns {boolean} True if WebXR Reference Space API is supported, false otherwise.
-   */
-  static detectWebXRReferenceSpaceAPI() {
-    return "XRReferenceSpace" in window;
-  }
-  /**
-   * Detects WebXR Viewer API support in the browser.
-   * @returns {boolean} True if WebXR Viewer API is supported, false otherwise.
-   */
-  static detectWebXRViewerAPI() {
-    return "XRViewer" in window;
-  }
-  /**
-   * Detects WebXR Layer API support in the browser.
-   * @returns {boolean} True if WebXR Layer API is supported, false otherwise.
-   */
-  static detectWebXRLayerAPI() {
-    return "XRLayer" in window;
-  }
-  /**
-   * Detects WebXR Input API support in the browser.
-   * @returns {boolean} True if WebXR Input API is supported, false otherwise.
-   */
-  static detectWebXRInputAPI() {
-    return "XRInput" in window;
-  }
-  /**
-   * Detects WebXR Hand Tracking API support in the browser.
-   * @returns {boolean} True if WebXR Hand Tracking API is supported, false otherwise.
-   */
-  static detectWebXRHandTrackingAPI() {
-    return "XRHandTracking" in window;
-  }
-  /**
-   * Detects WebXR Depth API support in the browser.
-   * @returns {boolean} True if WebXR Depth API is supported, false otherwise.
-   */
-  static detectWebXRDepthAPI() {
-    return "XRDepth" in window;
-  }
-  /**
-   * Detects WebXR Light Estimation API support in the browser.
-   * @returns {boolean} True if WebXR Light Estimation API is supported, false otherwise.
-   */
-  static detectWebXRLightEstimationAPI() {
-    return "XRLightEstimation" in window;
-  }
-  /**
-   * Detects WebXR DOM Overlay API support in the browser.
-   * @returns {boolean} True if WebXR DOM Overlay API is supported, false otherwise.
-   */
-  static detectWebXRDOMOverlayAPI() {
-    return "XRDOMOverlay" in window;
-  }
-  /**
-   * Detects WebXR DOM Overlay State API support in the browser.
-   * @returns {boolean} True if WebXR DOM Overlay State API is supported, false otherwise.
-   */
-  static detectWebXRDOMOverlayStateAPI() {
-    return "XRDOMOverlayState" in window;
-  }
-  /**
-   * Detects WebXR DOM Overlay Position API support in the browser.
-   * @returns {boolean} True if WebXR DOM Overlay Position API is supported, false otherwise.
-   */
-  static detectWebXRDOMOverlayPositionAPI() {
-    return "XRDOMOverlayPosition" in window;
-  }
-  /**
-   * Detects WebXR DOM Overlay Type API support in the browser.
-   * @returns {boolean} True if WebXR DOM Overlay Type API is supported, false otherwise.
-   */
-  static detectWebXRDOMOverlayTypeAPI() {
-    return "XRDOMOverlayType" in window;
-  }
-  /**
-   * Detects WebXR Gamepad API support in the browser.
-   * @returns {boolean} True if WebXR Gamepad API is supported, false otherwise.
-   */
-  static detectWebXRGamepadAPI() {
-    return "XRGamepad" in window;
-  }
-  /**
-   * Detects WebXR Gamepad Button API support in the browser.
-   * @returns {boolean} True if WebXR Gamepad Button API is supported, false otherwise.
-   */
-  static detectWebXRGamepadButtonAPI() {
-    return "XRGamepadButton" in window;
-  }
-  /**
-   * Detects WebXR Gamepad Pose API support in the browser.
-   * @returns {boolean} True if WebXR Gamepad Pose API is supported, false otherwise.
-   */
-  static detectWebXRGamepadPoseAPI() {
-    return "XRGamepadPose" in window;
-  }
-  /**
-   * Detects WebXR Frame Of Reference API support in the browser.
-   * @returns {boolean} True if WebXR Frame Of Reference API is supported, false otherwise.
-   */
-  static detectWebXRFrameOfReferenceAPI() {
-    return "XRFrameOfReference" in window;
-  }
-  /**
-   * Detects WebXR Frame Request Callback API support in the browser.
-   * @returns {boolean} True if WebXR Frame Request Callback API is supported, false otherwise.
-   */
-  static detectWebXRFrameRequestCallbackAPI() {
-    return "XRFrameRequestCallback" in window;
-  }
-  /**
-   * Detects WebXR Audio Listener API support in the browser.
-   * @returns {boolean} True if WebXR Audio Listener API is supported, false otherwise.
-   */
-  static detectWebXRAudioListenerAPI() {
-    return "XRAudioListener" in window;
-  }
-  /**
-   * Detects WebXR Audio Context API support in the browser.
-   * @returns {boolean} True if WebXR Audio Context API is supported, false otherwise.
-   */
-  static detectWebXRAudioContextAPI() {
-    return "XRAudioContext" in window;
-  }
-  /**
-   * Detects WebXR Input Source Event API support in the browser.
-   * @returns {boolean} True if WebXR Input Source Event API is supported, false otherwise.
-   */
-  static detectWebXRInputSourceEventAPI() {
-    return "XRInputSourceEvent" in window;
-  }
-  /**
-   * Detects WebXR Input Source Array API support in the browser.
-   * @returns {boolean} True if WebXR Input Source Array API is supported, false otherwise.
-   */
-  static detectWebXRInputSourceArrayAPI() {
-    return "XRInputSourceArray" in window;
-  }
-  /**
-   * Detects WebXR Input Source Hand API support in the browser.
-   * @returns {boolean} True if WebXR Input Source Hand API is supported, false otherwise.
-   */
-  static detectWebXRInputSourceHandAPI() {
-    return "XRInputSourceHand" in window;
-  }
-  /**
-   * Detects WebXR Input Source Haptic Actuator API support in the browser.
-   * @returns {boolean} True if WebXR Input Source Haptic Actuator API is supported, false otherwise.
-   */
-  static detectWebXRInputSourceHapticActuatorAPI() {
-    return "XRInputSourceHapticActuator" in window;
-  }
-  /**
-   * Detects WebXR Input Source Pose API support in the browser.
-   * @returns {boolean} True if WebXR Input Source Pose API is supported, false otherwise.
-   */
-  static detectWebXRInputSourcePoseAPI() {
-    return "XRInputSourcePose" in window;
-  }
-  /**
-   * Detects WebXR Input Source Pose State API support in the browser.
-   * @returns {boolean} True if WebXR Input Source Pose State API is supported, false otherwise.
-   */
-  static detectWebXRInputSourcePoseStateAPI() {
-    return "XRInputSourcePoseState" in window;
-  }
-  /**
-   * Detects WebXR Input Source Profile API support in the browser.
-   * @returns {boolean} True if WebXR Input Source Profile API is supported, false otherwise.
-   */
-  static detectWebXRInputSourceProfileAPI() {
-    return "XRInputSourceProfile" in window;
-  }
-  /**
-   * Detects WebXR Input Source Target Ray Mode API support in the browser.
-   * @returns {boolean} True if WebXR Input Source Target Ray Mode API is supported, false otherwise.
-   */
-  static detectWebXRInputSourceTargetRayModeAPI() {
-    return "XRInputSourceTargetRayMode" in window;
-  }
-  /**
-   * Detects WebXR Input Source Target Ray Space API support in the browser.
-   * @returns {boolean} True if WebXR Input Source Target Ray Space API is supported, false otherwise.
-   */
-  static detectWebXRInputSourceTargetRaySpaceAPI() {
-    return "XRInputSourceTargetRaySpace" in window;
-  }
-  /**
-   * Detects WebXR Input Source Touchpad API support in the browser.
-   * @returns {boolean} True if WebXR Input Source Touchpad API is supported, false otherwise.
-   */
-  static detectWebXRInputSourceTouchpadAPI() {
-    return "XRInputSourceTouchpad" in window;
-  }
-  /**
-   * Detects WebXR Input Source Vibration Actuator API support in the browser.
-   * @returns {boolean} True if WebXR Input Source Vibration Actuator API is supported, false otherwise.
-   */
-  static detectWebXRInputSourceVibrationActuatorAPI() {
-    return "XRInputSourceVibrationActuator" in window;
-  }
-  /**
-   * Detects WebXR Hit Test Source API support in the browser.
-   * @returns {boolean} True if WebXR Hit Test Source API is supported, false otherwise.
-   */
-  static detectWebXRHitTestSourceAPI() {
-    return "XRHitTestSource" in window;
-  }
-  /**
-   * Detects WebXR Hit Test Source Offset API support in the browser.
-   * @returns {boolean} True if WebXR Hit Test Source Offset API is supported, false otherwise.
-   */
-  static detectWebXRHitTestSourceOffsetAPI() {
-    return "XRHitTestSourceOffset" in window;
-  }
-  /**
-   * Detects WebXR Hit Test Source Pose API support in the browser.
-   * @returns {boolean} True if WebXR Hit Test Source Pose API is supported, false otherwise.
-   */
-  static detectWebXRHitTestSourcePoseAPI() {
-    return "XRHitTestSourcePose" in window;
-  }
-  /**
-   * Detects WebXR Hit Test Source Ray Space API support in the browser.
-   * @returns {boolean} True if WebXR Hit Test Source Ray Space API is supported, false otherwise.
-   */
-  static detectWebXRHitTestSourceRaySpaceAPI() {
-    return "XRHitTestSourceRaySpace" in window;
-  }
-  /**
-   * Detects WebXR Hit Test Result API support in the browser.
-   * @returns {boolean} True if WebXR Hit Test Result API is supported, false otherwise.
-   */
-  static detectWebXRHitTestResultAPI() {
-    return "XRHitTestResult" in window;
-  }
-  /**
-   * Detects WebXR Image API support in the browser.
-   * @returns {boolean} True if WebXR Image API is supported, false otherwise.
-   */
-  static detectWebXRImageAPI() {
-    return "XRImage" in window;
-  }
-  /**
-   * Detects WebXR Image Bitmap API support in the browser.
-   * @returns {boolean} True if WebXR Image Bitmap API is supported, false otherwise.
-   */
-  static detectWebXRImageBitmapAPI() {
-    return "XRImageBitmap" in window;
-  }
-  /**
-   * Detects WebXR Image Bitmap Array API support in the browser.
-   * @returns {boolean} True if WebXR Image Bitmap Array API is supported, false otherwise.
-   */
-  static detectWebXRImageBitmapArrayAPI() {
-    return "XRImageBitmapArray" in window;
-  }
-  /**
-   * Detects WebXR Image Bitmap Rendering Context API support in the browser.
-   * @returns {boolean} True if WebXR Image Bitmap Rendering Context API is supported, false otherwise.
-   */
-  static detectWebXRImageBitmapRenderingContextAPI() {
-    return "XRImageBitmapRenderingContext" in window;
-  }
-  /**
-   * Detects WebXR Image Bitmap Rendering Context Sync API support in the browser.
-   * @returns {boolean} True if WebXR Image Bitmap Rendering Context Sync API is supported, false otherwise.
-   */
-  static detectWebXRImageBitmapRenderingContextSyncAPI() {
-    return "XRImageBitmapRenderingContextSync" in window;
-  }
-  /**
-   * Detects WebXR Image Decode API support in the browser.
-   * @returns {boolean} True if WebXR Image Decode API is supported, false otherwise.
-   */
-  static detectWebXRImageDecodeAPI() {
-    return "XRImageDecode" in window;
-  }
-  /**
-   * Detects WebXR Image Encode API support in the browser.
-   * @returns {boolean} True if WebXR Image Encode API is supported, false otherwise.
-   */
-  static detectWebXRImageEncodeAPI() {
-    return "XRImageEncode" in window;
   }
 };
 
@@ -4913,7 +4605,7 @@ var EnvInfo = class {
    * @param {Function} callback - The callback function to receive the battery status.
    */
   static getBatteryStatus(callback2) {
-    if (DetectFeature.detectBatteryAPI()) {
+    if ("navigator" in window && "getBattery" in navigator) {
       navigator.getBattery().then((battery) => {
         callback2({
           level: battery.level,
@@ -4991,7 +4683,7 @@ var EnvInfo = class {
    * @param {Function} callback - The callback function to receive the geolocation.
    */
   static getGeolocation(callback2) {
-    if (DetectFeature.detectGeolocationAPI()) {
+    if ("geolocation" in navigator) {
       navigator.geolocation.getCurrentPosition((position) => {
         callback2({
           latitude: position.coords.latitude,
@@ -5009,160 +4701,202 @@ var EnvInfo = class {
 // src/device/storage/browser-storage.js
 var BrowserStorage = class {
   /**
-   * Sets a key-value pair in local storage.
+   * Sets a key-value pair in local storage with optional expiration.
+   *
    * @param {string} key - The key for the storage item.
    * @param {string} value - The value to be stored.
+   * @param {number} [expiresIn] - Optional expiration time in milliseconds.
    */
-  static setLocal(key, value) {
-    localStorage.setItem(key, value);
+  static setLocal(key, value, expiresIn) {
+    const data = { value };
+    if (expiresIn) {
+      data.expiresAt = Date.now() + expiresIn;
+    }
+    localStorage.setItem(key, JSON.stringify(data));
   }
   /**
-   * Gets the value associated with a key from local storage.
+   * Gets the value associated with a key from local storage, considering expiration.
+   *
    * @param {string} key - The key for the storage item.
-   * @returns {string|null} - The stored value or null if the key is not found.
+   * @returns {string|null} - The stored value or null if the key is not found or expired.
    */
   static getLocal(key) {
-    return localStorage.getItem(key);
+    const item = localStorage.getItem(key);
+    if (item) {
+      const data = JSON.parse(item);
+      if (data.expiresAt && Date.now() > data.expiresAt) {
+        localStorage.removeItem(key);
+        return null;
+      }
+      return data.value;
+    }
+    return null;
   }
   /**
-   * Removes a key-value pair from local storage.
-   * @param {string} key - The key for the storage item to be removed.
-   */
-  static removeLocal(key) {
-    localStorage.removeItem(key);
-  }
-  /**
-   * Clears all key-value pairs from local storage.
-   */
-  static clearLocal() {
-    localStorage.clear();
-  }
-  /**
-   * Sets a key-value pair in session storage.
+   * Sets a key-value pair in session storage with optional expiration.
+   *
    * @param {string} key - The key for the storage item.
    * @param {string} value - The value to be stored.
+   * @param {number} [expiresIn] - Optional expiration time in milliseconds.
    */
-  static setSession(key, value) {
-    sessionStorage.setItem(key, value);
+  static setSession(key, value, expiresIn) {
+    const data = { value };
+    if (expiresIn) {
+      data.expiresAt = Date.now() + expiresIn;
+    }
+    sessionStorage.setItem(key, JSON.stringify(data));
   }
   /**
-   * Gets the value associated with a key from session storage.
+   * Gets the value associated with a key from session storage, considering expiration.
+   *
    * @param {string} key - The key for the storage item.
-   * @returns {string|null} - The stored value or null if the key is not found.
+   * @returns {string|null} - The stored value or null if the key is not found or expired.
    */
   static getSession(key) {
-    return sessionStorage.getItem(key);
-  }
-  /**
-   * Removes a key-value pair from session storage.
-   * @param {string} key - The key for the storage item to be removed.
-   */
-  static removeSession(key) {
-    sessionStorage.removeItem(key);
-  }
-  /**
-   * Clears all key-value pairs from session storage.
-   */
-  static clearSession() {
-    sessionStorage.clear();
-  }
-  /**
-   * Retrieves the key at the specified index from local storage.
-   * @param {number} index - The index of the key to retrieve.
-   * @returns {string|null} - The key or null if the index is out of bounds.
-   */
-  static getLocalKeyByIndex(index) {
-    return localStorage.key(index);
-  }
-  /**
-   * Retrieves the key at the specified index from session storage.
-   * @param {number} index - The index of the key to retrieve.
-   * @returns {string|null} - The key or null if the index is out of bounds.
-   */
-  static getSessionKeyByIndex(index) {
-    return sessionStorage.key(index);
-  }
-  /**
-   * Retrieves the number of key-value pairs stored in local storage.
-   * @returns {number} - The number of key-value pairs.
-   */
-  static getLocalLength() {
-    return localStorage.length;
-  }
-  /**
-   * Retrieves the number of key-value pairs stored in session storage.
-   * @returns {number} - The number of key-value pairs.
-   */
-  static getSessionLength() {
-    return sessionStorage.length;
+    const item = sessionStorage.getItem(key);
+    if (item) {
+      const data = JSON.parse(item);
+      if (data.expiresAt && Date.now() > data.expiresAt) {
+        sessionStorage.removeItem(key);
+        return null;
+      }
+      return data.value;
+    }
+    return null;
   }
   /**
    * Checks if a key exists in local storage.
+   *
    * @param {string} key - The key to check for existence.
    * @returns {boolean} - True if the key exists, false otherwise.
    */
   static isLocalKeyExists(key) {
-    return localStorage.getItem(key) !== null;
+    return this.getLocal(key) !== null;
   }
   /**
    * Checks if a key exists in session storage.
+   *
    * @param {string} key - The key to check for existence.
    * @returns {boolean} - True if the key exists, false otherwise.
    */
   static isSessionKeyExists(key) {
-    return sessionStorage.getItem(key) !== null;
+    return this.getSession(key) !== null;
   }
   /**
    * Retrieves all keys stored in local storage.
+   *
    * @returns {Array<string>} - An array containing all keys in local storage.
    */
   static getAllLocalKeys() {
-    return Object.keys(localStorage);
+    return Array.from({ length: localStorage.length }, (_, i) => localStorage.key(i));
   }
   /**
    * Retrieves all keys stored in session storage.
+   *
    * @returns {Array<string>} - An array containing all keys in session storage.
    */
   static getAllSessionKeys() {
-    return Object.keys(sessionStorage);
+    return Array.from({ length: sessionStorage.length }, (_, i) => sessionStorage.key(i));
   }
   /**
    * Retrieves all values stored in local storage.
+   *
    * @returns {Array<string>} - An array containing all values in local storage.
    */
   static getAllLocalValues() {
-    return Object.values(localStorage);
+    return Array.from({ length: localStorage.length }, (_, i) => localStorage.getItem(localStorage.key(i)));
   }
   /**
    * Retrieves all values stored in session storage.
+   *
    * @returns {Array<string>} - An array containing all values in session storage.
    */
   static getAllSessionValues() {
-    return Object.values(sessionStorage);
+    return Array.from({ length: sessionStorage.length }, (_, i) => sessionStorage.getItem(sessionStorage.key(i)));
   }
   /**
    * Retrieves all key-value pairs stored in local storage.
+   *
    * @returns {Object} - An object containing all key-value pairs in local storage.
    */
   static getAllLocalItems() {
-    const items = {};
-    for (let i = 0; i < localStorage.length; i++) {
+    return Array.from({ length: localStorage.length }, (_, i) => {
       const key = localStorage.key(i);
-      items[key] = localStorage.getItem(key);
-    }
-    return items;
+      return { [key]: this.getLocal(key) };
+    }).reduce((acc, item) => ({ ...acc, ...item }), {});
   }
   /**
    * Retrieves all key-value pairs stored in session storage.
+   *
    * @returns {Object} - An object containing all key-value pairs in session storage.
    */
   static getAllSessionItems() {
-    const items = {};
+    return Array.from({ length: sessionStorage.length }, (_, i) => {
+      const key = sessionStorage.key(i);
+      return { [key]: this.getSession(key) };
+    }).reduce((acc, item) => ({ ...acc, ...item }), {});
+  }
+  /**
+   * Synchronizes local storage with a given object. Adds new entries, updates existing ones, and removes obsolete ones.
+   *
+   * @param {Object} data - An object containing key-value pairs to sync with local storage.
+   * @param {boolean} [merge=false] - If true, merge with existing local storage data instead of replacing.
+   * @returns {void}
+   */
+  static syncLocalStorage(data, merge = false) {
+    if (merge) {
+      for (const [key, value] of Object.entries(data)) {
+        this.setLocal(key, value);
+      }
+    } else {
+      this.clearLocal();
+      for (const [key, value] of Object.entries(data)) {
+        this.setLocal(key, value);
+      }
+    }
+  }
+  /**
+   * Syncs session storage with a given object. Adds new entries, updates existing ones, and removes obsolete ones.
+   *
+   * @param {Object} data - An object containing key-value pairs to sync with session storage.
+   * @param {boolean} [merge=false] - If true, merge with existing session storage data instead of replacing.
+   * @returns {void}
+   */
+  static syncSessionStorage(data, merge = false) {
+    if (merge) {
+      for (const [key, value] of Object.entries(data)) {
+        this.setSession(key, value);
+      }
+    } else {
+      this.clearSession();
+      for (const [key, value] of Object.entries(data)) {
+        this.setSession(key, value);
+      }
+    }
+  }
+  /**
+   * Performs a batch operation on local storage, executing a function on each key-value pair.
+   *
+   * @param {Function} callback - A function to execute on each key-value pair. Receives key and value as arguments.
+   * @returns {void}
+   */
+  static batchProcessLocalStorage(callback2) {
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      callback2(key, this.getLocal(key));
+    }
+  }
+  /**
+   * Performs a batch operation on session storage, executing a function on each key-value pair.
+   *
+   * @param {Function} callback - A function to execute on each key-value pair. Receives key and value as arguments.
+   * @returns {void}
+   */
+  static batchProcessSessionStorage(callback2) {
     for (let i = 0; i < sessionStorage.length; i++) {
       const key = sessionStorage.key(i);
-      items[key] = sessionStorage.getItem(key);
+      callback2(key, this.getSession(key));
     }
-    return items;
   }
 };
 
@@ -5170,35 +4904,49 @@ var BrowserStorage = class {
 var DeviceStorage = class {
   /**
    * Get the total storage capacity of the device.
-   * @returns {Promise<number>} - A promise that resolves with the total storage capacity in bytes.
+   * @returns {Promise<{bytes: number, humanReadable: string}>} - A promise that resolves with the total storage capacity in bytes and a human-readable format.
    */
   static async getTotalStorageCapacity() {
     const storageInfo = await navigator.storage.estimate();
-    return storageInfo.quota;
+    return {
+      bytes: storageInfo.quota,
+      readable: this.bytesToHumanReadable(storageInfo.quota)
+    };
   }
   /**
    * Get the used storage space on the device.
-   * @returns {Promise<number>} - A promise that resolves with the used storage space in bytes.
+   * @returns {Promise<{bytes: number, humanReadable: string}>} - A promise that resolves with the used storage space in bytes and a human-readable format.
    */
   static async getUsedStorageSpace() {
     const storageInfo = await navigator.storage.estimate();
-    return storageInfo.usage;
+    return {
+      bytes: storageInfo.usage,
+      readable: this.bytesToHumanReadable(storageInfo.usage)
+    };
   }
   /**
    * Get the available storage space on the device.
-   * @returns {Promise<number>} - A promise that resolves with the available storage space in bytes.
+   * @returns {Promise<{bytes: number, humanReadable: string}>} - A promise that resolves with the available storage space in bytes and a human-readable format.
    */
   static async getAvailableStorageSpace() {
     const storageInfo = await navigator.storage.estimate();
-    return storageInfo.quota - storageInfo.usage;
+    const availableSpace = storageInfo.quota - storageInfo.usage;
+    return {
+      bytes: availableSpace,
+      readable: this.bytesToHumanReadable(availableSpace)
+    };
   }
   /**
    * Check if there is enough free space on the device for a given amount.
    * @param {number} requiredSpace - The required space in bytes.
-   * @returns {Promise<boolean>} - A promise that resolves with a boolean indicating if there is enough free space.
+   * @returns {Promise<{hasEnough: boolean, availableSpace: {bytes: number, humanReadable: string}}>} - A promise that resolves with a boolean indicating if there is enough free space and details about available space.
    */
   static async hasEnoughFreeSpace(requiredSpace) {
-    return this.getAvailableStorageSpace().then((availableSpace) => availableSpace >= requiredSpace);
+    const availableSpaceInfo = await this.getAvailableStorageSpace();
+    return {
+      hasEnough: availableSpaceInfo.bytes >= requiredSpace,
+      availableSpace: availableSpaceInfo
+    };
   }
   /**
    * Get the storage type of the device (e.g., 'temporary', 'persistent').
@@ -5217,18 +4965,132 @@ var DeviceStorage = class {
       const granted = await navigator.storage.persist();
       return granted === true;
     }
-    return Promise.resolve(false);
+    return false;
   }
   /**
    * Get the default quota for persistent storage.
-   * @returns {Promise<number>} - A promise that resolves with the default quota for persistent storage in bytes.
+   * @returns {Promise<{quota: number, humanReadable: string}>} - A promise that resolves with the default quota for persistent storage in bytes and a human-readable format.
    */
   static async getDefaultPersistentStorageQuota() {
     const persisted = await navigator.storage.persisted();
     if (persisted) {
-      return navigator.storage.persist().then((granted) => granted ? 0 : -1);
+      return {
+        quota: await navigator.storage.persist(),
+        readable: "Persistent storage is granted with no specific quota"
+      };
     }
-    return -1;
+    return {
+      quota: -1,
+      readable: "Persistent storage is not granted"
+    };
+  }
+  /**
+   * Convert bytes to a human-readable format.
+   * @param {number} bytes - The size in bytes.
+   * @returns {string} - The size in a human-readable format.
+   */
+  static bytesToHumanReadable(bytes) {
+    if (bytes === 0) return "0 Bytes";
+    const sizes = ["Bytes", "KB", "MB", "GB", "TB", "PB", "EB", "ZB", "YB"];
+    const i = parseInt(Math.floor(Math.log(bytes) / Math.log(1024)));
+    return Math.round(bytes / Math.pow(1024, i), 2) + " " + sizes[i];
+  }
+};
+
+// src/device/browser-api/device-api.js
+var DeviceAPIs = class {
+  /**
+   * Request a Bluetooth device and return it.
+   * @param {object} filters - Filters to match the device.
+   * @returns {Promise<BluetoothDevice>} - A promise that resolves with the Bluetooth device.
+   */
+  static async requestBluetoothDevice(filters = []) {
+    if (!("bluetooth" in navigator)) {
+      throw new Error("Bluetooth API is not supported.");
+    }
+    try {
+      return await navigator.bluetooth.requestDevice({ filters });
+    } catch (error) {
+      throw new Error(`Bluetooth device request failed: ${error.message}`);
+    }
+  }
+  /**
+   * Request a USB device and return it.
+   * @returns {Promise<USBDevice>} - A promise that resolves with the USB device.
+   */
+  static async requestUSBDevice() {
+    if (!("usb" in navigator)) {
+      throw new Error("USB API is not supported.");
+    }
+    try {
+      return await navigator.usb.requestDevice({ filters: [] });
+    } catch (error) {
+      throw new Error(`USB device request failed: ${error.message}`);
+    }
+  }
+  /**
+   * Get the current WiFi status (mocked as WiFi API is not standardized yet).
+   * @returns {Promise<string>} - A promise that resolves with the WiFi status.
+   */
+  static async getWiFiStatus() {
+    if (!("wifi" in navigator)) {
+      throw new Error("WiFi API is not supported.");
+    }
+    return "WiFi status retrieval is not available in standard API.";
+  }
+  /**
+   * Synthesize speech from text.
+   * @param {string} text - The text to synthesize.
+   * @param {object} [options] - Optional settings for the speech synthesis.
+   * @returns {void}
+   */
+  static synthesizeSpeech(text, options = {}) {
+    if (!("speechSynthesis" in window)) {
+      throw new Error("Speech Synthesis API is not supported.");
+    }
+    const utterance = new SpeechSynthesisUtterance(text);
+    for (const [key, value] of Object.entries(options)) {
+      if (utterance[key] !== void 0) {
+        utterance[key] = value;
+      }
+    }
+    window.speechSynthesis.speak(utterance);
+  }
+  /**
+   * Checks if the Clipboard API is available.
+   * @returns {boolean} - True if the Clipboard API is available.
+   */
+  static isClipboardSupported() {
+    return navigator.clipboard && "writeText" in navigator.clipboard;
+  }
+  /**
+   * Write text to the clipboard.
+   * @param {string} text - The text to write to the clipboard.
+   * @returns {Promise<void>} - A promise that resolves when the text is written.
+   */
+  static async writeToClipboard(text) {
+    if (!this.isClipboardSupported()) {
+      throw new Error("Clipboard API is not supported.");
+    }
+    try {
+      await navigator.clipboard.writeText(text);
+    } catch (error) {
+      throw new Error(`Failed to write to clipboard: ${error.message}`);
+    }
+  }
+  /**
+   * Read text from the clipboard.
+   * @returns {Promise<string>} - A promise that resolves with the text from the clipboard.
+   */
+  static async readFromClipboard() {
+    if (!this.isClipboardSupported()) {
+      throw new Error("Clipboard API is not supported.");
+    }
+    try {
+      return await navigator.clipboard.readText();
+    } catch (error) {
+      throw new Error(`Failed to read from clipboard: ${error.message}`);
+    }
   }
 };
 
@@ -5237,7 +5099,7 @@ var Butility = {
   Element,
   Attribute,
   Obj,
-  String: String2,
+  String,
   Scroll,
   Utility,
   Ripple,
@@ -5248,7 +5110,6 @@ var Butility = {
   Modal,
   Tooltip,
   Validate,
-  CreditCard,
   FormAction,
   SerializeForm,
   File,
@@ -5258,12 +5119,14 @@ var Butility = {
   FullScreen,
   IP,
   RequestServer,
-  URLClass,
+  URLUtility,
+  ServiceWorkerManager,
   DetectDevice,
   DetectFeature,
   EnvInfo,
   DeviceStorage,
-  BrowserStorage
+  BrowserStorage,
+  DeviceAPIs
 };
 var src_default = Butility;
 export {
@@ -5272,9 +5135,9 @@ export {
   BrowserStorage,
   Capture,
   Color,
-  CreditCard,
   DetectDevice,
   DetectFeature,
+  DeviceAPIs,
   DeviceStorage,
   DragDrop,
   Element,
@@ -5291,10 +5154,11 @@ export {
   RippleEffect,
   Scroll,
   SerializeForm,
-  String2 as String,
+  ServiceWorkerManager,
+  String,
   Style,
   Tooltip,
-  URLClass,
+  URLUtility,
   Utility,
   Validate,
   src_default as default
