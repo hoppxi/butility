@@ -17,17 +17,66 @@ export class Obj {
      * @returns {boolean} - True if the objects are equal, false otherwise.
      */
     static compareObjects(obj1, obj2) {
-        return JSON.stringify(obj1) === JSON.stringify(obj2);
+        if (obj1 === obj2) return true;
+
+        if (obj1 === null || obj2 === null || typeof obj1 !== 'object' || typeof obj2 !== 'object') {
+            return false;
+        }
+
+        if (obj1.constructor !== obj2.constructor) return false;
+
+        if (Array.isArray(obj1)) {
+            if (obj1.length !== obj2.length) return false;
+            return obj1.every((item, index) => this.compareObjects(item, obj2[index]));
+        }
+
+        const keys1 = Object.keys(obj1);
+        const keys2 = Object.keys(obj2);
+
+        if (keys1.length !== keys2.length) return false;
+
+        // Check for differences in keys and values recursively
+        for (let key of keys1) {
+            if (!keys2.includes(key)) return false;
+            if (!this.compareObjects(obj1[key], obj2[key])) return false;
+        }
+
+        return true;
     }
 
     /**
      * Deep clone an object.
      * @param {Object} obj - The object to clone.
+     * @param {WeakMap} cache
      * @returns {Object} - The cloned object.
      */
-    static deepCloneObject(obj) {
-        return JSON.parse(JSON.stringify(obj));
+    static deepCloneObject(obj, cache = new WeakMap()) {
+        if (obj === null || typeof obj !== 'object') return obj;
+        if (cache.has(obj)) return cache.get(obj);
+    
+        let clone;
+        if (obj instanceof Date) {
+            clone = new Date(obj);
+        } else if (obj instanceof RegExp) {
+            clone = new RegExp(obj);
+        } else if (obj instanceof Map) {
+            clone = new Map(Array.from(obj.entries(), ([key, value]) => [this.deepCloneObject(key, cache), this.deepCloneObject(value, cache)]));
+        } else if (obj instanceof Set) {
+            clone = new Set(Array.from(obj, value => this.deepCloneObject(value, cache)));
+        } else if (Array.isArray(obj)) {
+            clone = obj.map(item => this.deepCloneObject(item, cache));
+        } else {
+            clone = {};
+            cache.set(obj, clone); // Handle circular references
+            for (let key in obj) {
+                if (obj.hasOwnProperty(key)) {
+                    clone[key] = this.deepCloneObject(obj[key], cache);
+                }
+            }
+        }
+        return clone;
     }
+    
 
     /**
      * Deep merge two objects.
@@ -36,20 +85,28 @@ export class Obj {
      * @returns {Object} - The merged object.
      */
     static deepMergeObjects(target, source) {
-        const merged = { ...target };
-
+        if (!this.isPlainObject(target) && !Array.isArray(target)) return source;
         for (const key in source) {
             if (source.hasOwnProperty(key)) {
-                if (merged.hasOwnProperty(key) && typeof merged[key] === 'object' && typeof source[key] === 'object') {
-                    merged[key] = Obj.deepMergeObjects(merged[key], source[key]);
+                const targetValue = target[key];
+                const sourceValue = source[key];
+    
+                if (Array.isArray(targetValue) && Array.isArray(sourceValue)) {
+                    target[key] = [...new Set([...targetValue, ...sourceValue])];
+                } else if (targetValue instanceof Map && sourceValue instanceof Map) {
+                    sourceValue.forEach((value, key) => targetValue.set(key, this.deepMergeObjects(targetValue.get(key), value)));
+                } else if (targetValue instanceof Set && sourceValue instanceof Set) {
+                    sourceValue.forEach(value => targetValue.add(value));
+                } else if (this.isPlainObject(targetValue) && this.isPlainObject(sourceValue)) {
+                    target[key] = this.deepMergeObjects({ ...targetValue }, sourceValue);
                 } else {
-                    merged[key] = source[key];
+                    target[key] = sourceValue;
                 }
             }
         }
-
-        return merged;
+        return target;
     }
+    
 
     /**
      * Deep freeze an object.
@@ -57,16 +114,24 @@ export class Obj {
      * @returns {Object} - The frozen object.
      */
     static deepFreezeObject(obj) {
-        const keys = Object.keys(obj);
-
-        keys.forEach((key) => {
-            if (typeof obj[key] === 'object' && obj[key] !== null) {
-                Obj.deepFreezeObject(obj[key]);
+        if (obj === null || typeof obj !== 'object' || Object.isFrozen(obj)) return obj;
+    
+        Object.keys(obj).forEach(key => {
+            const value = obj[key];
+            if (typeof value === 'object' && value !== null) {
+                this.deepFreezeObject(value);
             }
         });
-
+    
+        if (obj instanceof Map) {
+            obj.forEach((value, key) => this.deepFreezeObject(value));
+        } else if (obj instanceof Set) {
+            obj.forEach(value => this.deepFreezeObject(value));
+        }
+    
         return Object.freeze(obj);
     }
+    
 
     /**
      * Check if an object is a plain object.
@@ -74,7 +139,7 @@ export class Obj {
      * @returns {boolean} - True if the object is a plain object, false otherwise.
      */
     static isPlainObject(obj) {
-        return typeof obj === 'object' && obj !== null && obj.constructor === Object;
+        return Object.prototype.toString.call(obj) === '[object Object]' && (obj.constructor === Object || typeof obj.constructor === 'undefined');
     }
 
     /**
@@ -103,47 +168,19 @@ export class Obj {
      * @returns {boolean} - True if the subset is a subset of the superset, false otherwise.
      */
     static isObjectSubset(subset, superset) {
+        if (subset === superset) return true;
+    
         for (const key in subset) {
-            if (subset.hasOwnProperty(key) && superset.hasOwnProperty(key)) {
-                if (typeof subset[key] === 'object' && typeof superset[key] === 'object') {
-                    if (!Obj.isObjectSubset(subset[key], superset[key])) {
-                        return false;
-                    }
-                } else if (subset[key] !== superset[key]) {
-                    return false;
-                }
-            } else {
+            if (!superset.hasOwnProperty(key)) return false;
+    
+            if (typeof subset[key] === 'object' && subset[key] !== null) {
+                if (!this.isObjectSubset(subset[key], superset[key])) return false;
+            } else if (subset[key] !== superset[key]) {
                 return false;
             }
         }
+    
         return true;
-    }
-
-    /**
-     * Get the keys of an object.
-     * @param {Object} obj - The object.
-     * @returns {Array} - An array containing the keys of the object.
-     */
-    static getObjectKeys(obj) {
-        return Object.keys(obj);
-    }
-
-    /**
-     * Get the values of an object.
-     * @param {Object} obj - The object.
-     * @returns {Array} - An array containing the values of the object.
-     */
-    static getObjectValues(obj) {
-        return Object.values(obj);
-    }
-
-    /**
-     * Get the entries of an object (key-value pairs).
-     * @param {Object} obj - The object.
-     * @returns {Array} - An array containing the entries of the object.
-     */
-    static getObjectEntries(obj) {
-        return Object.entries(obj);
     }
 
     /**
@@ -156,11 +193,16 @@ export class Obj {
         const mappedObj = {};
         for (const key in obj) {
             if (obj.hasOwnProperty(key)) {
-                mappedObj[key] = callback(obj[key], key, obj);
+                if (typeof obj[key] === 'object' && obj[key] !== null) {
+                    mappedObj[key] = this.objectMap(obj[key], callback);
+                } else {
+                    mappedObj[key] = callback(obj[key], key, obj);
+                }
             }
         }
         return mappedObj;
     }
+    
 
     /**
      * Filter an object based on a predicate function.
@@ -171,8 +213,14 @@ export class Obj {
     static objectFilter(obj, predicate) {
         const filteredObj = {};
         for (const key in obj) {
-            if (obj.hasOwnProperty(key) && predicate(obj[key], key, obj)) {
-                filteredObj[key] = obj[key];
+            if (obj.hasOwnProperty(key)) {
+                const value = obj[key];
+                if (typeof value === 'object' && value !== null) {
+                    const filteredChild = this.objectFilter(value, predicate);
+                    if (Object.keys(filteredChild).length > 0) filteredObj[key] = filteredChild;
+                } else if (predicate(value, key, obj)) {
+                    filteredObj[key] = value;
+                }
             }
         }
         return filteredObj;
@@ -189,7 +237,12 @@ export class Obj {
         let accumulator = initialValue;
         for (const key in obj) {
             if (obj.hasOwnProperty(key)) {
-                accumulator = callback(accumulator, obj[key], key, obj);
+                const value = obj[key];
+                if (typeof value === 'object' && value !== null) {
+                    accumulator = this.objectReduce(value, callback, accumulator);
+                } else {
+                    accumulator = callback(accumulator, value, key, obj);
+                }
             }
         }
         return accumulator;
@@ -290,9 +343,10 @@ export class Obj {
      */
     static objectZip(keys, values) {
         const zippedObj = {};
-        keys.forEach((key, index) => {
-            zippedObj[key] = values[index];
-        });
+        const length = Math.min(keys.length, values.length);
+        for (let i = 0; i < length; i++) {
+            zippedObj[keys[i]] = values[i];
+        }
         return zippedObj;
     }
 
@@ -306,19 +360,5 @@ export class Obj {
             .map(([key, value]) => `${encodeURIComponent(key)}=${encodeURIComponent(value)}`)
             .join('&');
         return queryString;
-    }
-
-    /**
-     * Convert a query string to an object.
-     * @param {string} queryString - The query string.
-     * @returns {Object} - An object representation of the query string.
-     */
-    static queryStringToObject(queryString) {
-        const obj = {};
-        const params = new URLSearchParams(queryString);
-        params.forEach((value, key) => {
-            obj[key] = value;
-        });
-        return obj;
     }
 }
